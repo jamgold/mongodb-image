@@ -374,18 +374,16 @@ if(Meteor.isServer) {
   Meteor.startup(function(){
     DBImages._ensureIndex('created');
 
-    var admin = Meteor.users.findOne({"emails.0.address": "jhm@cotren.net"});
+    var assets = EJSON.parse(Assets.getText('admin.json'));
+    var admin_user = assets.admin_user;
+    var email = admin_user.email;
+
+    var admin = Meteor.users.findOne({"emails.0.address": email});
+
     if(admin) {
       Roles.addUsersToRoles(admin._id, ['admin','json']);
     } else {
-      id = Accounts.createUser({
-        username: 'jhm',
-        password: 'initial password',
-        email: 'jhm@cotren.net',
-        profile: {
-          name: 'Jan Hendrik Mangold'
-        }
-      });
+      id = Accounts.createUser(admin_user);
       Roles.addUsersToRoles(id, ['admin']);
     }
   });
