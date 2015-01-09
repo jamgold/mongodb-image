@@ -1,0 +1,112 @@
+<head>
+  <title>MongoDB Images</title>
+  <!-- <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css"> -->
+  <!-- <link rel="stylesheet" href="font-awesome-animation.min.css"> -->
+</head>
+
+<body>
+{{!Bootstrap3boilerplate}}
+</body>
+
+<template name="thumbnails">
+	{{#if isInRole 'json'}}
+	<div class="well">
+		<p>This app now also supports two REST methods 
+		<pre><a href=/api/json/images>/api/json/images</a>
+<a href=/api/json/image/Cs8B6L5TtkwymknFX>/api/json/image/<i>imageid</i></a></pre>
+		both of which will return a JSON structure
+		</p>
+	</div>
+	{{/if}}
+	{{#if currentUser}}
+		{{#if isInRole 'banned'}}
+			<div class="well">
+			<h1>You have been banned to upload images</h1>
+			<p>Apparently you have been abusing this demo to upload offensive images, so you have been banned.</p>
+			</div>
+		{{else}}
+			<form>
+			    <label for="fileinput" class="btn btn-xl btn-success" style="/* style this one, as you want */">Upload file</label>
+			    <input id="fileinput" name="fileinput" type="file" style="display:none;">
+			    <button class="btn hidden btn-danger upload" type="submit">Upload</button>
+			    <input type="reset" class="hidden">
+			</form>
+		{{/if}}
+	{{/if}}
+
+	<div class="thumbnails">
+	{{#each images}}
+		<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
+			<img class="thumbnail" imageid="{{_id}}" src="{{thumbnail}}"/>
+		</a>
+	{{/each}}
+	</div>
+	<div>
+	{{#each pages}}
+		{{{this}}}
+	{{/each}}
+	</div>
+	<hr>
+	When signed-in and clicking the upload button, javascript reads the file and stores the image and a thumbnail in the database
+	<pre class="code">var file = $('#fileinput').files[0];
+var reader = new FileReader();
+reader.onload = function(e) {
+    DBImages.insert({src:e.target.result});
+};</pre>
+	The images are stored as <a href="http://en.wikipedia.org/wiki/Data_URI_scheme">data URI</a>. Here is the beginning of the dataURI of the first thumbnail
+	<pre>data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAAXNSR0IArs4c6QAAQABJREFUeAFtvWmMpdl5mPfefam9qquqq6vX6WF3z0zPcGZIDoc7KVISIwmRFUZREjiA7UC2/wjILwVB/gxgJIhjGInzw3IQG4INCzaUBIhtkXRoWSRFmha3GZKz9fR0T+9d3V37cuvu9+Z5zlffTJvhmam+937f+c7y7u973nO+QqFQGBfGEcE/jUop+oNRDMZcGBe4GFEqF2I4sEJEuU.... etc</pre>
+</template>
+
+<template name="userImages">
+	<div class="wall">
+	<h1>All images for {{user_name}}</h1>
+	</div>
+	<div class="thumbnails user_images">
+	{{#each images}}
+		<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
+			<img class="thumbnail" imageid="{{_id}}" src="{{thumbnail}}"/>
+		</a>
+	{{/each}}
+	</div>
+</template>
+
+<template name="image">
+	{{#if img}}
+		{{#with img}}
+			{{#if src}}
+				<ul class="image-info">
+				<li>{{name}}</li>
+				<li>size {{size}} bytes</li>
+				<li>mime-type {{type}}</li>
+				{{#if isInRole 'admin'}}
+					<li>{{{user_banned}}} <a href="/user/{{user}}">{{user_name}}</a></li>
+				{{/if}}
+				</ul>
+				<div class="fullscreen" style="background-image: url( {{src}} )"></div>
+				<div class="image buttons">
+				  <a class="btn btn-default btn-xl back" href="/">Back</a>
+				  {{#if canDelete user}}
+				  <a class="btn btn-danger delete btn-xl" href="/" id="{{_id}}">Delete</a>
+				  {{/if}}
+				</div>
+				{{md5hash}}
+			{{else}}
+				Loading dataURI ...
+			{{/if}}
+		{{/with}}
+	{{else}}
+		<h1>Image does not exist</h1>
+	{{/if}}
+</template>
+
+<template name="admin">
+    {{#if isAdminUser}}
+        {{> accountsAdmin}}
+    {{else}}
+        Must be admin to see this...
+    {{/if}}
+</template>
+
+<template name="imageLoading">
+	<h1>Loading <i class="fa fa-spinner faa-spin animated"></i> {{size}}</h1>
+</template>

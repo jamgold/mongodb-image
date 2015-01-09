@@ -1,0 +1,55 @@
+/* CSS declarations go here */
+.thumbnail {
+	width: 100px;
+	height: 100px;
+	display: inline-block;
+}
+.thumbnails {
+	width: 1060px;
+	height: 360px;
+	overflow: auto;
+	margin: 0 auto;
+}
+.user_images {
+	overflow: initial;
+	height:100%;
+	margin-bottom: 1em;
+}
+.hidden {
+	display: none;
+}
+.banned {
+	text-decoration: line-through;
+}
+.fullscreen {
+	top: 60px;
+	left: 5%;
+	position: absolute;
+	background-size: contain;
+	background-position: 0px 0px;
+	background-repeat: no-repeat;
+	background-position: center;
+	/* compensate for body margin */
+	/*margin-top: -50px;*/
+	display: table;
+	width: 90%;
+	height: 90%; /* For at least Firefox */
+	z-index: -10;
+}
+
+div.image.buttons {
+	position:absolute;
+	bottom:30px;
+	right:30px;
+}
+.starter-template {
+	/*position: relative;*/
+}
+.image-info {
+	background-color: white;
+	display: inline-block;
+	opacity: 0.7;
+}
+form {
+	min-height: 5em;
+}
