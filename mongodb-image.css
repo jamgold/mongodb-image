@@ -3,12 +3,18 @@
 	width: 100px;
 	height: 100px;
 	display: inline-block;
+	margin-bottom:.1em;
 }
 .thumbnails {
 	width: 1060px;
 	height: 360px;
 	overflow: auto;
 	margin: 0 auto;
+}
+.image-size {
+	font-size: 8px;
+	color: #ccc;
+	/*text-align: center;*/
 }
 .user_images {
 	overflow: initial;

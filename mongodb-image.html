@@ -25,22 +25,21 @@
 			<p>Apparently you have been abusing this demo to upload offensive images, so you have been banned.</p>
 			</div>
 		{{else}}
-			<form>
-			    <label for="fileinput" class="btn btn-xl btn-success" style="/* style this one, as you want */">Upload file</label>
-			    <input id="fileinput" name="fileinput" type="file" style="display:none;">
-			    <button class="btn hidden btn-danger upload" type="submit">Upload</button>
-			    <input type="reset" class="hidden">
-			</form>
+			{{>upload}}
 		{{/if}}
 	{{/if}}
 
-	<div class="thumbnails">
+	<div class="row">
 	{{#each images}}
-		<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
-			<img class="thumbnail" imageid="{{_id}}" src="{{thumbnail}}"/>
-		</a>
+		<div class="col-lg-2 col-md-2 col-sm-4">
+			<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
+				<img class="thumbnail" imageid="{{_id}}" src="{{thumbnail}}"/>
+			</a>
+			<div class="image-size">{{size}}</div>
+		</div>
 	{{/each}}
 	</div>
+
 	<div>
 	{{#each pages}}
 		{{{this}}}
@@ -57,6 +56,15 @@ reader.onload = function(e) {
 	<pre>data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAAXNSR0IArs4c6QAAQABJREFUeAFtvWmMpdl5mPfefam9qquqq6vX6WF3z0zPcGZIDoc7KVISIwmRFUZREjiA7UC2/wjILwVB/gxgJIhjGInzw3IQG4INCzaUBIhtkXRoWSRFmha3GZKz9fR0T+9d3V37cuvu9+Z5zlffTJvhmam+937f+c7y7u973nO+QqFQGBfGEcE/jUop+oNRDMZcGBe4GFEqF2I4sEJEuU.... etc</pre>
 </template>
 
+<template name="upload">
+	<form>
+	    <label for="fileinput" class="btn btn-xl btn-success" style="/* style this one, as you want */">Upload file</label>
+	    <input id="fileinput" name="fileinput" type="file" style="display:none;">
+	    <button class="btn hidden btn-danger upload" type="submit">Upload</button>
+	    <input type="reset" class="hidden">
+	</form>
+</template>
+
 <template name="userImages">
 	<div class="wall">
 	<h1>All images for {{user_name}}</h1>
@@ -65,6 +73,7 @@ reader.onload = function(e) {
 	{{#each images}}
 		<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
 			<img class="thumbnail" imageid="{{_id}}" src="{{thumbnail}}"/>
+			<div class="image-size">{{size}}</div>
 		</a>
 	{{/each}}
 	</div>
@@ -82,7 +91,7 @@ reader.onload = function(e) {
 					<li>{{{user_banned}}} <a href="/user/{{user}}">{{user_name}}</a></li>
 				{{/if}}
 				</ul>
-				<div class="fullscreen" style="background-image: url( {{src}} )"></div>
+				<div class="fullscreen" style="background-image: url( {{src.get}} )"></div>
 				<div class="image buttons">
 				  <a class="btn btn-default btn-xl back" href="/">Back</a>
 				  {{#if canDelete user}}

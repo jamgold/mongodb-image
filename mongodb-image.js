@@ -1,4 +1,9 @@
-DBImages = new Meteor.Collection('dbimages');
+DBImages = new Meteor.Collection('dbimages',{
+  transform: function(doc) {
+    // console.log('transform: '+doc._id);
+    return doc;
+  }
+});
 ImagesPerPage = 30;
 
 if(Meteor.isClient) {
@@ -6,8 +11,9 @@ if(Meteor.isClient) {
   Session.setDefault('imageStart', 0);
   Session.setDefault('imageCount', 0);
   Session.setDefault('loadingSize', 0);
+  Session.setDefault('src', new Date());
 
-  Template.thumbnails.rendered = function () {
+  Template.upload.rendered = function () {
     var template = this;
 
     this.reader = new FileReader();
@@ -91,28 +97,7 @@ if(Meteor.isClient) {
     // console.info(this.view.name+'.rendered',this);
   };
 
-  Template.thumbnails.helpers({
-    pages: function () {
-      var pages = [];
-      var page = 1;
-      var number = ImagesPerPage+1;
-      var current = Session.get('imageStart');
-      var counter = Session.get('imageCount');
-      for(var i=0;i<counter;i+=number)
-      {
-        var c = i == current ? 'page btn btn-success' : 'page btn btn-default';
-        pages.push('<a class="'+c+'" start="'+i+'">'+page+'</a>');
-        page++;
-      }
-      return pages;
-    },
-    images: function() {
-      // console.log('images');
-      return DBImages.find({thumbnail:{$exists:1}},{limit:ImagesPerPage,sort:{created: -1 }});
-    }
-  });
-
-  Template.thumbnails.events({
+  Template.upload.events({
     'change #fileinput': function(e,template) {
       // console.info(e.target);
       var file = document.getElementById('fileinput').files[0];
@@ -121,15 +106,6 @@ if(Meteor.isClient) {
       template.reader.onload = (function(aImg) { return function(e) { aImg.src = e.target.result; }; })(template.crop_img);
       template.reader.readAsDataURL(file);
       template.$('button.upload').removeClass('hidden');
-    },
-    'click a.page':function(e,t) {
-      var a = $(e.target);
-      var s = parseInt(a.attr('start'));
-      Session.set('imageStart', s);
-    },
-    'click a.image':function(e,t) {
-      var img = DBImages.findOne({_id: $(e.target).attr('imageid')});
-      Session.set('loadingSize', img.size+'bytes');
     },
     'submit form': function(e, template) {
         // http://meteortuts.com/meteor-js-upload-image-to-collection/
@@ -169,6 +145,40 @@ if(Meteor.isClient) {
     }
   });
 
+  Template.thumbnails.helpers({
+    pages: function () {
+      var pages = [];
+      var page = 1;
+      var number = ImagesPerPage+1;
+      var current = Session.get('imageStart');
+      var counter = Session.get('imageCount');
+      for(var i=0;i<counter;i+=number)
+      {
+        var c = i == current ? 'page btn btn-success' : 'page btn btn-default';
+        pages.push('<a class="'+c+'" start="'+i+'">'+page+'</a>');
+        page++;
+      }
+      return pages;
+    },
+    // helper to get all the thumbnails
+    images: function() {
+      // console.log('images');
+      return DBImages.find({thumbnail:{$exists:1}},{limit:ImagesPerPage,sort:{created: -1 }});
+    }
+  });
+
+  Template.thumbnails.events({
+    'click a.page':function(e,t) {
+      var a = $(e.target);
+      var s = parseInt(a.attr('start'));
+      Session.set('imageStart', s);
+    },
+    'click a.image':function(e,t) {
+      var img = DBImages.findOne({_id: $(e.target).attr('imageid')});
+      Session.set('loadingSize', img.size+'bytes');
+    },
+  });
+
   Template.image.rendered = function() {
     // console.info('Template.image.rendered', this);
     if(Roles.userIsInRole( Meteor.userId(),'admin'))
@@ -183,22 +193,9 @@ if(Meteor.isClient) {
     }
   };
 
-  Template.userImages.rendered = function() {
-    if(Roles.userIsInRole( Meteor.userId(),'admin'))
-    {
-      Meteor.call('user_name', this.data.user, function(err,res){
-        if(!err) 
-        {
-          Session.set('user_name', res.email);
-          Session.set('user_banned', res.banned);
-        }
-      });
-    }
-  }
-
   Template.image.helpers({
     md5hash: function() {
-      var image = DBImages.findOne({_id: Session.get('image')});
+      var image = this;
       if(image && image.src)
       {
         var update = false;
@@ -301,6 +298,19 @@ if(Meteor.isClient) {
     }
   });
 
+  Template.userImages.rendered = function() {
+    if(Roles.userIsInRole( Meteor.userId(),'admin'))
+    {
+      Meteor.call('user_name', this.data.user, function(err,res){
+        if(!err) 
+        {
+          Session.set('user_name', res.email);
+          Session.set('user_banned', res.banned);
+        }
+      });
+    }
+  }
+
   Bootstrap3boilerplate.Navbar.left = function() {
     return [
       // {href:'/',text:'Images'},
@@ -339,6 +349,12 @@ if(Meteor.isClient) {
     // ...
     Bootstrap3boilerplate.ProjectName.set({text:Session.get('imageCount')+' MongoDB Images',href:'/'});
   });
+
+  Meteor.startup(function(){
+    // DBImages.distinct('user',function(err, result){
+    //   console.info('distinct users', result);
+    // });
+  });
 }
 
 if(Meteor.isServer) {
@@ -367,10 +383,6 @@ if(Meteor.isServer) {
     });
   });
 
-  Meteor.publish('image', function(id){
-    return DBImages.find({_id: id });
-  });
-
   Meteor.startup(function(){
     DBImages._ensureIndex('created');
 
@@ -387,6 +399,8 @@ if(Meteor.isServer) {
       Roles.addUsersToRoles(id, ['admin']);
     }
   });
+
+  // var result = DBImages.distinct('user');console.info('distinct users', result);
 }
 
 Meteor.methods({
@@ -434,6 +448,10 @@ Meteor.methods({
     { 
       return 'only admins can ban users';
     }
+  },
+  src: function(id) {
+    var img = DBImages.findOne({_id: id});
+    return img ? img.src : '';
   }
 });
 
@@ -456,6 +474,10 @@ Router.configure({
 
 Router.route('/',{
   name:'thumbnails',
+  //
+  // do not subscribe to thumbnails here, because then the whole page flickers
+  // when loading the next page of thumbnails, subscribe thumbnails in Tracker instead
+  //
   // waitOn: function () {
   //   return Meteor.subscribe('thumbnails', Session.get('imageStart'), function(){
   //     // var c = DBImages.find().count();
@@ -472,15 +494,40 @@ Router.route('/',{
 
 Router.route('/image/:id',{
   name: 'image',
-  waitOn: function() {
-    var id = this.params.id;
-    return Meteor.subscribe('image', id, function(){
-      // console.log('subscribed to '+id);
-    });
+  // we already have all the images, so just get the src for the selected image
+  onBeforeAction: function() {
+    var route = this;
+    console.info('route.image.beforeAction','get full image', route.params.id);
+    route.img = DBImages.findOne({_id: route.params.id});
+    if(route.img)
+    {
+      // set the preliminary src to animation and make it reactive
+      route.img.src = new ReactiveVar('/circle-loading-animation.gif');
+      // now call method to get src for id
+      Meteor.call('src', route.params.id, function(err,src){
+        if(this.isSimulation)
+        {
+          console.log('loading image');
+        }
+        else
+        {
+          if(err)
+          {
+            console.log(err);
+          }
+          else
+          {
+            // set this routes img src
+            route.img.src.set(src);
+          }
+        }
+      });
+    }
+    route.next();
   },
   data: function() {
     return {
-      img: DBImages.findOne({_id: this.params.id})
+      img: this.img
     }
   }
 });
