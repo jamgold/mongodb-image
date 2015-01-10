@@ -11,6 +11,7 @@ if(Meteor.isClient) {
   Session.setDefault('imageStart', 0);
   Session.setDefault('imageCount', 0);
   Session.setDefault('loadingSize', 0);
+  Session.setDefault('distinct_users',[]);
   Session.setDefault('src', new Date());
 
   Template.upload.rendered = function () {
@@ -173,10 +174,6 @@ if(Meteor.isClient) {
       var s = parseInt(a.attr('start'));
       Session.set('imageStart', s);
     },
-    'click a.image':function(e,t) {
-      var img = DBImages.findOne({_id: $(e.target).attr('imageid')});
-      Session.set('loadingSize', img.size+'bytes');
-    },
   });
 
   Template.image.rendered = function() {
@@ -309,7 +306,20 @@ if(Meteor.isClient) {
         }
       });
     }
-  }
+  };
+
+  Template.userImages.helpers({
+    distinct_users: function () {
+      // ...
+      DBImages.distinct('user',function(err, result){
+        Session.set('distinct_users', result);
+      });
+      return Session.get('distinct_users');
+    },
+    activeUser: function() {
+      return this.toString() == Session.get('loadingSize');
+    }
+  });
 
   Bootstrap3boilerplate.Navbar.left = function() {
     return [
@@ -371,7 +381,7 @@ if(Meteor.isServer) {
   });
 
   Meteor.publish('user_images', function(user){
-    console.info('user_images', user);
+    // console.info('user_images', user);
     return DBImages.find({
       user: user
       // thumbnail:{$exists:1}
@@ -536,7 +546,7 @@ Router.route('/user/:user',{
   name: 'user_images',
   waitOn: function() {
     var user = this.params.user;
-    Session.set('loadingSize', 'user '+user);
+    Session.set('loadingSize', user);
     return Meteor.subscribe('user_images', user, function(){
       // console.log('subscribed to '+user);
     });

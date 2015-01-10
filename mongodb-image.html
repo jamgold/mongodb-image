@@ -66,17 +66,32 @@ reader.onload = function(e) {
 </template>
 
 <template name="userImages">
-	<div class="wall">
-	<h1>All images for {{user_name}}</h1>
-	</div>
-	<div class="thumbnails user_images">
-	{{#each images}}
-		<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
-			<img class="thumbnail" imageid="{{_id}}" src="{{thumbnail}}"/>
-			<div class="image-size">{{size}}</div>
-		</a>
-	{{/each}}
-	</div>
+	{{#if isInRole 'admin'}}
+		<div class="wall">
+		<h1>All images for {{user_name}}</h1>
+		</div>
+		<div class="row">
+		{{#each images}}
+			<div class="col-lg-2 col-md-2 col-sm-4">
+			<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
+				<img class="thumbnail" imageid="{{_id}}" src="{{thumbnail}}"/>
+				<div class="image-size">{{size}}</div>
+			</a>
+			</div>
+		{{/each}}
+		</div>
+		<ul>
+		{{#each distinct_users}}
+			{{#if activeUser}}
+				<li>{{this}}</li>
+			{{else}}
+				<li><a href="/user/{{this}}">{{this}}</a></li>
+			{{/if}}
+		{{/each}}
+		</ul>
+	{{else}}
+		Must be admin to see this...
+	{{/if}}
 </template>
 
 <template name="image">
