@@ -16,16 +16,18 @@
 		both of which will return a JSON structure
 		</p>
 	</div>
+  {{else}}
+  <div class="well">Thumbnails</div>
 	{{/if}}
 	{{#if currentUser}}
-		{{#if isInRole 'banned'}}
+		{{#unless isInRole 'banned'}}
+      {{>upload}}
+    {{else}}
 			<div class="well">
 			<h1>You have been banned to upload images</h1>
 			<p>Apparently you have been abusing this demo to upload offensive images, so you have been banned.</p>
 			</div>
-		{{else}}
-			{{>upload}}
-		{{/if}}
+		{{/unless}}
 	{{/if}}
 	<div class="row thumbnails" id="images">
 		{{#if Template.subscriptionsReady}}
@@ -46,7 +48,9 @@ reader.onload = function(e) {
 };</pre>
 	The images are stored as <a href="http://en.wikipedia.org/wiki/Data_URI_scheme">data URI</a>. Here is the beginning of the dataURI of the first thumbnail
 	<pre>data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAAXNSR0IArs4c6QAAQABJREFUeAFtvWmMpdl5mPfefam9qquqq6vX6WF3z0zPcGZIDoc7KVISIwmRFUZREjiA7UC2/wjILwVB/gxgJIhjGInzw3IQG4INCzaUBIhtkXRoWSRFmha3GZKz9fR0T+9d3V37cuvu9+Z5zlffTJvhmam+937f+c7y7u973nO+QqFQGBfGEcE/jUop+oNRDMZcGBe4GFEqF2I4sEJEuU.... etc</pre>
+  {{#if isInRole 'moment'}}
 	{{> momentTemplate}}
+  {{/if}}
 </template>
 
 <template name="thumbnails_data">
@@ -73,7 +77,7 @@ reader.onload = function(e) {
 
 <template name="upload">
 	<form>
-	    <label for="fileinput" class="btn btn-xl btn-success" style="/* style this one, as you want */">Upload file</label>
+	    <label for="fileinput" class="btn btn-xl btn-success">Upload file</label>
 	    <input id="fileinput" name="fileinput" type="file" style="display:none;">
 	    <button class="btn hidden btn-danger upload" type="submit">Upload</button>
 	    <input type="reset" class="hidden">

@@ -1,7 +1,7 @@
 optionsTest = function(args, options) {
   options = options || {};
 
-  Log.info('options', options);
+  console.info('options', options);
 };
 
 Session.setDefault('uploaded', 0);
@@ -209,23 +209,6 @@ Template.thumbnail.onDestroyed(function(){
   this.$('div.off').addClass('off')
 });
 
-Template.momentTemplate.helpers({
-  createPageFromTemplates: function() {
-    return EJSON.stringify(Session.get('createPageFromTemplates'), {indent: true});
-  },
-  isDevelopment: function() {
-    return __meteor_runtime_config__.isDevelopment;
-  }
-});
-Template.momentTemplate.events({
-  'click button.createPageFromTemplates': function(e,t) {
-    Log.info('calling createPageFromTemplates');
-    Meteor.call('createPageFromTemplates', function(e,r){
-      if(!e) Session.set('createPageFromTemplates', r);
-    });
-  }
-});
-
 Template.image.onCreated(function(){
   var self = this;
   self.img = new ReactiveVar({});
@@ -333,7 +316,8 @@ Template.image.events({
   'click a.ban': function(e,t){
     if(confirm('Really ban this user?'))
     {
-      Meteor.call('ban', t.data.img.user, true, function(err,res){
+      var img = t.img.get();
+      Meteor.call('ban', img.user, true, function(err,res){
         if(err)
         {
           console.log(err)
@@ -350,7 +334,8 @@ Template.image.events({
   'click a.banned': function(e,t) {
     if(confirm('Really unban this user?'))
     {
-      Meteor.call('ban', t.data.img.user, false, function(err,res){
+      var img = t.img.get();
+      Meteor.call('ban', img.user, false, function(err,res){
         if(err)
         {
           console.log(err)
@@ -430,13 +415,31 @@ Template.userImages.helpers({
     return Session.get('user_name');
   },
 });
+/*
+ * requires role moment
+ */
+Template.momentTemplate.helpers({
+  createPageFromTemplates: function() {
+    return EJSON.stringify(Session.get('createPageFromTemplates'), {indent: true});
+  },
+  isDevelopment: function() {
+    return __meteor_runtime_config__.isDevelopment;
+  }
+});
+Template.momentTemplate.events({
+  'click button.createPageFromTemplates': function(e,t) {
+    console.info('calling createPageFromTemplates');
+    Meteor.call('createPageFromTemplates', function(e,r){
+      if(!e) Session.set('createPageFromTemplates', r);
+    });
+  }
+});
 
 Bootstrap3boilerplate.Navbar.left = function() {
   return [
     // {href:'/',text:'Images'},
   ];
 };
-
 Bootstrap3boilerplate.Navbar.right = function() {
   var right = [
     {showLoginButtons:true}
@@ -448,7 +451,6 @@ Bootstrap3boilerplate.Navbar.right = function() {
   }
   return right;
 };
-
 Bootstrap3boilerplate.init();
 Bootstrap3boilerplate.Footer.show.set(false);
 
@@ -460,20 +462,6 @@ Tracker.autorun(function () {
   });
 });
 
-// Tracker.autorun(function () {
-//   // ...
-//   if(thumbnailsTemplate)
-//   {
-//     console.log('before subscribe '+thumbnailsTemplate.numberofimages);
-//     // $('.thumbnail').each(function(x){
-//     //   $(this).addClass('off');
-//     // });
-//   }
-//   Meteor.subscribe('thumbnails', Session.get('imageStart'),function(){
-//     console.log('thumbnails subscribed');
-//   });
-// });
-
 Tracker.autorun(function () {
   // ...
   Bootstrap3boilerplate.ProjectName.set({text:Session.get('imageCount')+' MongoDB Images',href:'/'});
@@ -483,8 +471,8 @@ Meteor.startup(function(){
   // DBImages.distinct('user',function(err, result){
   //   console.info('distinct users', result);
   // });
-  Meteor.call('createPageFromTemplates', function(e,r){
-    if(!e) Session.set('createPageFromTemplates', r);
-  });
+  // Meteor.call('createPageFromTemplates', function(e,r){
+  //   if(!e) Session.set('createPageFromTemplates', r);
+  // });
 });
 
