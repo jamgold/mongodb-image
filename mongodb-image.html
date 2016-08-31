@@ -12,8 +12,7 @@
 	{{#if isInRole 'json'}}
 	<div class="well">
 		<p>This app now also supports two REST methods 
-		<pre><a href=/api/json/images>/api/json/images</a>
-<a href=/api/json/image/Cs8B6L5TtkwymknFX>/api/json/image/<i>imageid</i></a></pre>
+		<pre><a href=/api/json/images>/api/json/images</a><a href=/api/json/image/Cs8B6L5TtkwymknFX>/api/json/image/<i>imageid</i></a></pre>
 		both of which will return a JSON structure
 		</p>
 	</div>
@@ -28,18 +27,11 @@
 			{{>upload}}
 		{{/if}}
 	{{/if}}
-
-	<div class="row">
-	{{#each images}}
-		<div class="col-lg-2 col-md-2 col-sm-4">
-			<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
-				<img class="thumbnail" imageid="{{_id}}" src="{{thumbnail}}"/>
-			</a>
-			<div class="image-size">{{size}}</div>
-		</div>
-	{{/each}}
+	<div class="row thumbnails" id="images">
+		{{#if Template.subscriptionsReady}}
+			{{>thumbnails_data images=images}}
+		{{/if}}
 	</div>
-
 	<div>
 	{{#each pages}}
 		{{{this}}}
@@ -54,6 +46,29 @@ reader.onload = function(e) {
 };</pre>
 	The images are stored as <a href="http://en.wikipedia.org/wiki/Data_URI_scheme">data URI</a>. Here is the beginning of the dataURI of the first thumbnail
 	<pre>data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAAXNSR0IArs4c6QAAQABJREFUeAFtvWmMpdl5mPfefam9qquqq6vX6WF3z0zPcGZIDoc7KVISIwmRFUZREjiA7UC2/wjILwVB/gxgJIhjGInzw3IQG4INCzaUBIhtkXRoWSRFmha3GZKz9fR0T+9d3V37cuvu9+Z5zlffTJvhmam+937f+c7y7u973nO+QqFQGBfGEcE/jUop+oNRDMZcGBe4GFEqF2I4sEJEuU.... etc</pre>
+	{{> momentTemplate}}
+</template>
+
+<template name="thumbnails_data">
+	{{#each images}}
+		{{>thumbnail}}
+	{{/each}}
+</template>
+
+<template name="thumbnail">
+	<div class="col-lg-2 col-md-2 col-sm-4 animated off">
+		<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
+			<img class="thumbnail" imageid="{{_id}}" src="{{thumbnail}}"/>
+		</a>
+		<div class="image-size">{{size}}</div>
+	</div>
+</template>
+
+<template name="momentTemplate">
+	{{#if isDevelopment}}
+	<pre>{{createPageFromTemplates}}</pre>
+	<button class="btn btn-info createPageFromTemplates">Call Meteor Method with moment()</button>
+	{{/if}}
 </template>
 
 <template name="upload">

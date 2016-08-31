@@ -1,15 +1,35 @@
 /* CSS declarations go here */
+.thumbnails {
+	min-height: 600px;
+}
 .thumbnail {
 	width: 100px;
 	height: 100px;
 	display: inline-block;
 	margin-bottom:.1em;
 }
-.thumbnails {
-	width: 1060px;
-	height: 360px;
-	overflow: auto;
-	margin: 0 auto;
+.animated {
+/*
+	position: relative;
+	transition: 0.6s;
+	transform-style: preserve-3d;
+	transform: rotateY(180deg);
+*/
+	opacity: 1;
+/*	-webkit-transition: opacity 1s ease-in-out;
+	-moz-transition: opacity 1s ease-in-out;
+	-o-transition: opacity 1s ease-in-out;
+*/	
+	transition: opacity 2s ease-in-out;
+}
+.animated.off {
+  opacity: 0;
+  /*transform: rotateY(0deg);*/
+}
+.thumbnail.rotate {
+	transition: 0.6s;
+	transform-style: preserve-3d;
+	transform: rotateY(180deg);
 }
 .image-size {
 	font-size: 8px;
