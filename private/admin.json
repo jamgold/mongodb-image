@@ -1,6 +1,6 @@
 {
 	"admin_user": {
-		"email": "jhm@cotren.net",
+		"email": "initial@example.com",
 		"name": "Admin User",
 		"username": "admin",
 		"password": "initial password" 

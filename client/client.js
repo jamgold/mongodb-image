@@ -11,6 +11,8 @@ Session.setDefault('loadingSize', 0);
 Session.setDefault('distinct_users',[]);
 Session.setDefault('src', new Date());
 
+ThumbnailsHandle = null;
+
 Template.upload.onRendered(function () {
   var template = this;
 
@@ -154,14 +156,14 @@ Template.upload.events({
 Template.thumbnails.onCreated(function() {
   var template = this;
   // console.log(template.view.name+'.created');
-  this.autorun(function () {
-    // var imageStart = Session.get('imageStart');
-    template.numberofimages = 0;
-    // console.log(template.view.name+'.autorun '+imageStart);
-    template.handle = template.subscribe('thumbnails', Session.get('imageStart'),function(){
-      console.log('thumbnails subscribed');
-    });
-  });
+  // this.autorun(function () {
+  //   // var imageStart = Session.get('imageStart');
+  //   template.numberofimages = 0;
+  //   // console.log(template.view.name+'.autorun '+imageStart);
+  //   template.handle = template.subscribe('thumbnails', Session.get('imageStart'),function(){
+  //     console.log('thumbnails subscribed');
+  //   });
+  // });
 });
 Template.thumbnails.onRendered(function(){
   var template = this;
@@ -188,7 +190,16 @@ Template.thumbnails.helpers({
   // helper to get all the thumbnails only called ONCE, even when the subscription for DBImages changes
   images: function() {
     // console.log('thumbnails helper');
-    return DBImages.find({thumbnail:{$exists:1}},{limit:ImagesPerPage,sort:{created: -1 }});
+    return DBImages.find({
+      thumbnail:{$exists:1},
+      subscriptionId: ThumbnailsHandle.subscriptionId,
+    },{
+      limit:ImagesPerPage,
+      sort:{created: -1 }
+    });
+  },
+  ready: function() {
+    return ThumbnailsHandle.ready();
   },
 });
 Template.thumbnails.events({
@@ -247,7 +258,7 @@ Template.image.onRendered(function() {
         {
           Session.set('user_name', res.email);
           Session.set('user_banned', res.banned);
-        }
+        } else console.error(err);
       });
   }
 });
@@ -366,12 +377,13 @@ Template.imageLoading.helpers({
 
 Template.userImages.onCreated(function(){
   var template = this;
+  template.handle = null;
   template.autorun(function(){
     FlowRouter.watchPathChange();
     template.user = FlowRouter.current().params.user;
     Session.set('loadingSize', template.user);
-    template.subscribe('user_images', template.user, function(){
-      console.log('subscribed to '+template.user);
+    template.handle = template.subscribe('user_images', template.user, function(){
+      console.log('subscribed to images for '+template.user);
     });
   })
 });
@@ -386,7 +398,7 @@ Template.userImages.onRendered(function() {
           {
             Session.set('user_name', res.email);
             Session.set('user_banned', res.banned);
-          }
+          } else console.error(err);
         });
     })
   }
@@ -403,9 +415,19 @@ Template.userImages.helpers({
     return this.toString() == Session.get('loadingSize');
   },
   images: function() {
+    //
+    // do not use subscriptionId since the images might already be 
+    // there from the global Meteor.subscription and the publish
+    // only adds the new subscriptionId to images not yet in the 
+    // publication
+    //
     FlowRouter.watchPathChange();
     var instance = Template.instance();
-    return DBImages.find({user: instance.user},{sort:{created: -1}});
+    return DBImages.find({
+      user: instance.user,
+    },{
+      sort:{created: -1}
+    });
   },
   user: function() {
     var instance = Template.instance();
@@ -453,6 +475,13 @@ Bootstrap3boilerplate.Navbar.right = function() {
 };
 Bootstrap3boilerplate.init();
 Bootstrap3boilerplate.Footer.show.set(false);
+
+Tracker.autorun(function () {
+  Template.thumbnails.numberofimages = 0;
+  ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'),function(){
+    console.log('thumbnails subscribed '+ThumbnailsHandle.subscriptionId);
+  });
+});
 
 Tracker.autorun(function () {
   var uploaded = Session.get('uploaded');
