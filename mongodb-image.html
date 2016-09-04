@@ -10,19 +10,20 @@
 
 <template name="thumbnails">
 	{{#if isInRole 'json'}}
-	<div class="well">
+		<div class="well">
 		<p>This app now also supports two REST methods 
-		<pre><a href=/api/json/images>/api/json/images</a><a href=/api/json/image/Cs8B6L5TtkwymknFX>/api/json/image/<i>imageid</i></a></pre>
+		<pre><a target=_new href="/api/json/images/">/api/json/images/</a>
+<a target=_new href="/api/json/image/Cs8B6L5TtkwymknFX">/api/json/image/<i>imageid</i></a></pre>
 		both of which will return a JSON structure
 		</p>
-	</div>
-  {{else}}
-  <div class="well">Thumbnails</div>
+		</div>
+	{{else}}
+		<div class="well">Thumbnails</div>
 	{{/if}}
 	{{#if currentUser}}
 		{{#unless isInRole 'banned'}}
-      {{>upload}}
-    {{else}}
+			{{>upload}}
+		{{else}}
 			<div class="well">
 			<h1>You have been banned to upload images</h1>
 			<p>Apparently you have been abusing this demo to upload offensive images, so you have been banned.</p>
@@ -90,29 +91,38 @@ reader.onload = function(e) {
 		<h1>All images for {{user_name}}</h1>
 		</div>
 		<div class="row">
-		{{#each images}}
-			<div class="col-lg-2 col-md-2 col-sm-4">
-			<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
-				<img class="thumbnail" imageid="{{_id}}" src="{{thumbnail}}"/>
-				<div class="image-size">{{size}}</div>
-			</a>
+			<div class="col-lg-2">
+				<ul>
+				{{#each distinct_users}}
+					{{#if activeUser}}
+						<li>{{user_name}}</li>
+					{{else}}
+						{{>other_user}}
+					{{/if}}
+				{{/each}}
+				</ul>
 			</div>
-		{{/each}}
+			<div class="col-lg-10">
+				<div class="row">
+				{{#each images}}
+					<div class="col-lg-2 col-md-2 col-sm-4">
+					<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
+						<img class="thumbnail" imageid="{{_id}}" src="{{thumbnail}}"/>
+						<div class="image-size">{{size}}</div>
+					</a>
+					</div>
+				{{/each}}
+				</div>
+			</div>
 		</div>
-		<ul>
-		{{#each distinct_users}}
-			{{#if activeUser}}
-				<li>{{this}}</li>
-			{{else}}
-				<li><a href="/user/{{this}}">{{this}}</a></li>
-			{{/if}}
-		{{/each}}
-		</ul>
 	{{else}}
 		Must be admin to see this...
 	{{/if}}
 </template>
 
+<template name="other_user">
+	<li><a href="/user/{{this}}">{{other_user_name}}</a></li>
+</template>
 <template name="image">
 	{{#if img}}
 		{{#with img}}
