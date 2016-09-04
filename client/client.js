@@ -385,27 +385,20 @@ Template.userImages.onCreated(function(){
     template.handle = template.subscribe('user_images', template.user, function(){
       console.log('subscribed to images for '+template.user);
     });
+    Meteor.call('user_name', template.user, function(err,res){
+      if(!err) 
+      {
+        // console.log('set user_name to '+res.email);
+        Session.set('user_name', res.email);
+        Session.set('user_banned', res.banned);
+      } else console.error(err);
+    });
   })
-});
-Template.userImages.onRendered(function() {
-  var template = this;
-  if(Roles.userIsInRole( Meteor.userId(),'admin'))
-  {
-    template.autorun(function(){
-        FlowRouter.watchPathChange();
-        Meteor.call('user_name', FlowRouter.current().params.user, function(err,res){
-          if(!err) 
-          {
-            Session.set('user_name', res.email);
-            Session.set('user_banned', res.banned);
-          } else console.error(err);
-        });
-    })
-  }
 });
 Template.userImages.helpers({
   distinct_users: function () {
-    // ...
+    FlowRouter.watchPathChange();
+
     DBImages.distinct('user',function(err, result){
       Session.set('distinct_users', result);
     });
@@ -436,6 +429,22 @@ Template.userImages.helpers({
   user_name: function() {
     return Session.get('user_name');
   },
+});
+Template.other_user.onCreated(function(){
+  var self = this;
+  self.user_name = new ReactiveVar(self.data);
+  Meteor.call('user_name', self.data, function(err, user_name){
+    if(err) console.error(err);
+    else {
+      self.user_name.set(user_name.email);
+    }
+  })
+});
+Template.other_user.helpers({
+  other_user_name: function(){
+    var self = Template.instance();
+    return self.user_name.get();
+  }
 });
 /*
  * requires role moment
