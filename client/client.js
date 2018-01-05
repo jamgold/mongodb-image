@@ -1,3 +1,5 @@
+ import '/imports/lib/routes.js';
+
 optionsTest = function(args, options) {
   options = options || {};
 
@@ -534,8 +536,8 @@ Bootstrap3boilerplate.Navbar.right = function() {
   }
   return right;
 };
-Bootstrap3boilerplate.init();
-Bootstrap3boilerplate.Footer.show.set(true);
+Bootstrap3boilerplate.init(FlowRouter);
+Bootstrap3boilerplate.Footer.show.set(false);
 
 Tracker.autorun(function () {
   Template.thumbnails.numberofimages = 0;
