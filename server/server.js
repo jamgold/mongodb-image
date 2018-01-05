@@ -81,6 +81,18 @@ Meteor.startup(function(){
 
 
 Meteor.methods({
+  allImageIds: function() {
+    var images = [];
+    DBImages.find({
+          thumbnail:{$exists:1},
+        },{
+          sort:{created: -1 }
+        }
+    ).fetch().forEach(function(image){
+      images.push(image._id);
+    });
+    return images;
+  },
   createPageFromTemplates: function(pageTemplates) {
     if (this.isSimulation) {
       return {};

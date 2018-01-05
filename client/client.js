@@ -12,6 +12,7 @@ Session.setDefault('distinct_users',[]);
 Session.setDefault('src', new Date());
 
 ThumbnailsHandle = null;
+AllImages = new ReactiveVar([]);
 
 Template.upload.onRendered(function () {
   var template = this;
@@ -107,7 +108,18 @@ Template.upload.events({
     var file = document.getElementById('fileinput').files[0];
     // set crop_img.src so crop_img.onload fires
     // https://developer.mozilla.org/en-US/docs/Using_files_from_web_applications
-    template.reader.onload = (function(aImg) { return function(e) { aImg.src = e.target.result; }; })(template.crop_img);
+    template.reader.onload = (function(aImg) { return function(e) {
+      aImg.src = e.target.result;
+      var md5hash = md5(e.target.result);
+      Meteor.call('imageExists', md5hash, function(err, exists){
+        if(exists)
+        {
+          Bootstrap3boilerplate.alert('danger','Image '+file.name+' has been uploaded before', true);
+          template.$('button.upload').addClass('hidden');
+        }
+      });
+    };
+    })(template.crop_img);
     template.reader.readAsDataURL(file);
     template.$('button.upload').removeClass('hidden');
     $('div.crop_img').removeClass('hidden');
@@ -122,7 +134,7 @@ Template.upload.events({
 
       template.reader.onload = function(event) {
         var md5hash = md5(event.target.result);
-        console.log(md5hash);
+        // console.log(md5hash);
         Meteor.call('imageExists', md5hash, function(err, exists){
           if(exists)
           {
@@ -142,6 +154,9 @@ Template.upload.events({
             });
             Session.set('uploaded', Session.get('uploaded')+1);
             Session.set('imageStart', 0);
+            Meteor.call('allImageIds', function(err,res){
+              AllImages.set(res);
+            });
           }
           template.$('input[type="reset"]').click();
           template.$('button.upload').fadeIn();
@@ -175,7 +190,7 @@ Template.thumbnails.helpers({
   pages: function () {
     var pages = [];
     var page = 1;
-    var number = ImagesPerPage+1;
+    var number = ImagesPerPage;//+1;
     var template = Template.instance();
     var current = Session.get('imageStart');
     var counter = Session.get('imageCount');
@@ -223,27 +238,30 @@ Template.thumbnail.onDestroyed(function(){
 Template.image.onCreated(function(){
   var self = this;
   self.img = new ReactiveVar({});
-  var params = FlowRouter.current().params;
-  self.subscribe('image', params.id, function(){
-    var img = DBImages.findOne({_id: params.id});
-    if(img)
-    {
-      // set the preliminary src to animation and make it reactive
-      img.src = new ReactiveVar('/circle-loading-animation.gif');
-      self.img.set(img);
-      // now call method to get src for id
-      Meteor.call('src', params.id, function(err,src){
-        if(err)
-        {
-          console.log(err);
-        }
-        else
-        {
-          // set this routes img src
-          img.src.set(src);
-        }
-      });
-    }
+  self.autorun(function(){
+    var params = FlowRouter.current().params;
+    FlowRouter.watchPathChange();
+    self.subscribe('image', params.id, function(){
+      var img = DBImages.findOne({_id: params.id});
+      if(img)
+      {
+        // set the preliminary src to animation and make it reactive
+        img.src = new ReactiveVar('/circle-loading-animation.gif');
+        self.img.set(img);
+        // now call method to get src for id
+        Meteor.call('src', params.id, function(err,src){
+          if(err)
+          {
+            console.log(err);
+          }
+          else
+          {
+            // set this routes img src
+            img.src.set(src);
+          }
+        });
+      }
+    });
   });
 });
 Template.image.onRendered(function() {
@@ -305,9 +323,43 @@ Template.image.helpers({
   },
   canDelete: function(owner) {
     return owner == Meteor.userId() || Roles.userIsInRole( Meteor.userId(),'admin');
+  },
+  prev: function() {
+    var instance = Template.instance();
+    var images = AllImages.get();
+    var img = instance.img.get();
+    if(img && img._id) {
+      var id = img._id;
+      var pos = images.indexOf(id);
+      if(pos>0) {
+        return images[pos-1];
+      } else {
+        return false;
+      }
+    }
+  },
+  next: function() {
+    var instance = Template.instance();
+    var images = AllImages.get();
+    var img = instance.img.get();
+    if(img && img._id) {
+      var id = img._id;
+      var pos = images.indexOf(id);
+      if(pos<images.length) {
+        return images[pos+1];
+      } else {
+        return false;
+      }
+    }
   }
 });
 Template.image.events({
+  // 'click .carousel': function(e,t) {
+  //   var id = t.$(e.currentTarget).data('id');
+  //   var url = `/image/${id}`;
+  //   console.log(url);
+  //   FlowRouter.go(url);
+  // },
   'click a.delete': function(e,t) {
     if(confirm('Really Delete?'))
     {
@@ -483,7 +535,7 @@ Bootstrap3boilerplate.Navbar.right = function() {
   return right;
 };
 Bootstrap3boilerplate.init();
-Bootstrap3boilerplate.Footer.show.set(false);
+Bootstrap3boilerplate.Footer.show.set(true);
 
 Tracker.autorun(function () {
   Template.thumbnails.numberofimages = 0;
@@ -512,5 +564,8 @@ Meteor.startup(function(){
   // Meteor.call('createPageFromTemplates', function(e,r){
   //   if(!e) Session.set('createPageFromTemplates', r);
   // });
+  Meteor.call('allImageIds', function(err,res){
+    AllImages.set(res);
+  });
 });
 

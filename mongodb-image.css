@@ -79,3 +79,18 @@ div.image.buttons {
 form {
 	min-height: 5em;
 }
+a.carousel {
+	color: red;
+	font-size: 250%;
+	z-index: 1000;
+}
+a.carousel.next {
+	position: absolute;
+	right:5px;
+	top: 50%;
+}
+a.carousel.prev {
+	position: absolute;
+	left:5px;
+	top: 50%;
+}

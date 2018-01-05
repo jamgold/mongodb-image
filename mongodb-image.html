@@ -123,9 +123,16 @@ reader.onload = function(e) {
 <template name="other_user">
 	<li><a href="/user/{{this}}">{{other_user_name}}</a></li>
 </template>
+
 <template name="image">
 	{{#if img}}
 		{{#with img}}
+		{{#if prev}}
+		<a class="btn carousel prev" href="/image/{{prev}}"><span class="glyphicon glyphicon-chevron-left"></span></a>
+		{{/if}}
+		{{#if next}}
+		<a class="btn carousel next" href="/image/{{next}}"><span class="glyphicon glyphicon-chevron-right"></span></a>
+		{{/if}}
 			{{#if src}}
 				<ul class="image-info">
 				<li>{{name}}</li>
