@@ -1,12 +1,6 @@
 <head>
   <title>MongoDB Images</title>
-  <!-- <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.2.0/css/font-awesome.min.css"> -->
-  <!-- <link rel="stylesheet" href="font-awesome-animation.min.css"> -->
 </head>
-
-<body>
-{{!Bootstrap3boilerplate}}
-</body>
 
 <template name="thumbnails">
 	{{#if isInRole 'json'}}
@@ -36,22 +30,14 @@
 		{{/if}}
 	</div>
 	<div>
-	{{#each pages}}
-		{{{this}}}
+	{{#each page in pages}}
+		{{{page}}}
 	{{/each}}
 	</div>
-	<hr>
-	When signed-in and clicking the upload button, javascript reads the file and stores the image and a thumbnail in the database
-	<pre class="code">var file = $('#fileinput').files[0];
-var reader = new FileReader();
-reader.onload = function(e) {
-    DBImages.insert({src:e.target.result});
-};</pre>
-	The images are stored as <a href="http://en.wikipedia.org/wiki/Data_URI_scheme">data URI</a>. Here is the beginning of the dataURI of the first thumbnail
-	<pre>data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAAXNSR0IArs4c6QAAQABJREFUeAFtvWmMpdl5mPfefam9qquqq6vX6WF3z0zPcGZIDoc7KVISIwmRFUZREjiA7UC2/wjILwVB/gxgJIhjGInzw3IQG4INCzaUBIhtkXRoWSRFmha3GZKz9fR0T+9d3V37cuvu9+Z5zlffTJvhmam+937f+c7y7u973nO+QqFQGBfGEcE/jUop+oNRDMZcGBe4GFEqF2I4sEJEuU.... etc</pre>
-  {{#if isInRole 'moment'}}
-	{{> momentTemplate}}
-  {{/if}}
+	{{>instructions}}
+	{{#if isInRole 'moment'}}
+		{{> momentTemplate}}
+	{{/if}}
 </template>
 
 <template name="thumbnails_data">
@@ -169,4 +155,16 @@ reader.onload = function(e) {
 
 <template name="imageLoading">
 	<h1>Loading <i class="fa fa-spinner faa-spin animated"></i> {{size}}</h1>
+</template>
+
+<template name="instructions">
+		<hr>
+	When signed-in and clicking the upload button, javascript reads the file and stores the image and a thumbnail in the database
+	<pre class="code">var file = $('#fileinput').files[0];
+var reader = new FileReader();
+reader.onload = function(e) {
+    DBImages.insert({src:e.target.result});
+};</pre>
+	The images are stored as <a href="http://en.wikipedia.org/wiki/Data_URI_scheme">data URI</a>. Here is the beginning of the dataURI of the first thumbnail
+	<pre>data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAAXNSR0IArs4c6QAAQABJREFUeAFtvWmMpdl5mPfefam9qquqq6vX6WF3z0zPcGZIDoc7KVISIwmRFUZREjiA7UC2/wjILwVB/gxgJIhjGInzw3IQG4INCzaUBIhtkXRoWSRFmha3GZKz9fR0T+9d3V37cuvu9+Z5zlffTJvhmam+937f+c7y7u973nO+QqFQGBfGEcE/jUop+oNRDMZcGBe4GFEqF2I4sEJEuU.... etc</pre>
 </template>
