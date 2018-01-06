@@ -1,41 +1,33 @@
-import {FlowRouter} from 'meteor/kadira:flow-router';
+// import {FlowRouter} from 'meteor/kadira:flow-router';
+import { FlowRouter, RouterHelpers } from 'meteor/ostrio:flow-router-extra';
 
 FlowRouter.route('/', {
   name: 'thumbnails',
-  action: function(params) {
-    BlazeLayout.render(Bootstrap3boilerplate.layout, {
-      content: "thumbnails"
-    });
-  }
+  title: 'MongoDB Images',
+  action(params) {
+    this.render(Bootstrap3boilerplate.layout, "thumbnails", {content: "thumbnails"});
+  },
 });
 
 FlowRouter.route('/image/:id', {
   name: 'image',
   action: function(params) {
     // console.log('image', params);
-    BlazeLayout.render(Bootstrap3boilerplate.layout, {
-      content: "image",
-      // params: params,
-    });
+    this.render(Bootstrap3boilerplate.layout, "image", {content: "image"});
   }
 });
 
 FlowRouter.route('/user/:user', {
   name: 'user_images',
   action: function(params) {
-    BlazeLayout.render("Bootstrap3boilerplateFlowRouter", {
-      // header: "header"
-      content: "userImages"
-    });
+    this.render(Bootstrap3boilerplate.layout, "userImages", {content:"userImages"});
   }
 });
 
 FlowRouter.route('/admin', {
   name: 'admin',
   action: function(params) {
-    BlazeLayout.render("Bootstrap3boilerplateFlowRouter", {
-      // header: "header"
-      content: "admin"
-    });
+    this.render(Bootstrap3boilerplate.layout, "admin", {content: "admin"});
   }
 });
+

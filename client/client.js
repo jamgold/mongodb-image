@@ -1,10 +1,14 @@
- import '/imports/lib/routes.js';
+import '/imports/lib/routes.js';
+import { FlowRouter } from 'meteor/ostrio:flow-router-extra';
+var md5 = require('md5');
 
 optionsTest = function(args, options) {
   options = options || {};
 
   console.info('options', options);
 };
+
+AcceptedFileTypes = {"image/png":true,"image/jpeg":true,"image/jpg":true,"image/gif":true};
 
 Session.setDefault('uploaded', 0);
 Session.setDefault('imageStart', 0);
@@ -14,79 +18,110 @@ Session.setDefault('distinct_users',[]);
 Session.setDefault('src', new Date());
 
 ThumbnailsHandle = null;
-AllImages = new ReactiveVar([]);
+AllImageIDs = new ReactiveVar([]);
 
+Template.upload.onCreated(function(){
+  var template = this;
+  template.debug = false;
+  template.files = [];
+  template.filesIndex = 0;
+  template.file = null;
+  template.md5hash = "";
+  template.meteoruser = Meteor.userId();
+});
 Template.upload.onRendered(function () {
   var template = this;
 
-  this.reader = new FileReader();
-  this.preview = document.getElementById('images');
-
-  if(!this.preview)
-  {
-    this.preview = document.createElement('div');
-    this.preview.id = 'preview';
-    document.body.appendChild(this.preview);
-  }
-  this.crop_img = document.getElementById('crop_img');
-  if(!this.crop_img)
-  {
-    console.log('creating #crop_img');
-    this.crop_img = document.createElement('img');
-    this.crop_img.id = 'crop_img';
-    this.crop_img.classList.add('hidden');
-    this.preview.appendChild(this.crop_img);
-  }
-
-  this.cropCanvas = document.getElementById('crop_canvas');
-  if(!this.cropCanvas)
-  {
-    this.cropCanvas = document.createElement('canvas');
-    this.cropCanvas.id = 'crop_canvas';
-    this.cropCanvas.width = 100;
-    this.cropCanvas.height = 100;
-    this.cropCanvas.classList.add('hidden');
-    this.preview.appendChild(this.cropCanvas);
-  }
-
-  this.crop_img.onload = function(e) {
+  template.processNext = function uploadProcessNext() {
     //
-    // resize to 100x100
+    // process next if there are more
     //
+    if(template.filesIndex < template.files.length) {
+      template.file = template.files.item(template.filesIndex++);
+      template.reader.readAsDataURL(template.file);
+    } else {
+      template.filesIndex=0;
+      template.files = [];
+      Session.set('uploaded', Session.get('uploaded')+1);
+      Session.set('imageStart', 0);
+      Meteor.call('allImageIds', function(err,images){
+        AllImageIDs.set(images);
+      });
+      template.$('h1').removeClass('hidden');
+      template.$('img').addClass('hidden');
+      Bootstrap3boilerplate.Modal.hide();
+    }
+  }
+
+  template.reader = new FileReader();
+  template.preview = document.getElementById('images');
+
+  if(!template.preview)
+  {
+    template.preview = document.createElement('div');
+    template.preview.id = 'preview';
+    if(template.debug) {
+      console.log('creating #preview');
+    } else {
+      template.preview.classList.add('hidden');
+    }
+    document.body.appendChild(template.preview);
+  }
+  template.crop_img = document.getElementById('crop_img');
+  if(!template.crop_img)
+  {
+    template.crop_img = document.createElement('img');
+    template.crop_img.id = 'crop_img';
+    if(template.debug) {
+      console.log('creating #crop_img');
+    } else {
+      template.crop_img.classList.add('hidden');
+    }
+    template.preview.appendChild(template.crop_img);
+  }
+
+  template.cropCanvas = document.getElementById('crop_canvas');
+  if(!template.cropCanvas)
+  {
+    template.cropCanvas = document.createElement('canvas');
+    template.cropCanvas.id = 'crop_canvas';
     template.cropCanvas.width = 100;
-    template.cropCanvas.height= 100;
-
-    var crop_dataUrl = template.crop_img.src;
-    // console.log('cropping');
+    template.cropCanvas.height = 100;
+    if(template.debug) {
+      console.log('creating #crop_canvas');
+    } else {
+      template.cropCanvas.classList.add('hidden');
+    }
+    template.preview.appendChild(template.cropCanvas);
+  }
+  //
+  // define onload handler for image
+  //
+  template.crop_img.onload = function cropImgLoaded(e) {
+    console.log(`crop_img.onload ${e.timeStamp}`);
+    var cropCanvas = template.cropCanvas;
+    var cropDataUrl = this.src;
     var cc = {
       x: 0,
       y: 0,
-      width: template.crop_img.width,
-      height: template.crop_img.height
-      // width: template.cropCanvas.width,
-      // height: template.cropCanvas.height
+      width: this.width,
+      height: this.height,
     };
     if (cc.height > cc.width) {
       cc.height = cc.width;
     }
     else
     {
-      cc.width = crop_img.height;
+      cc.width = this.height;
     }
-    console.log('cropping',cc);
-    // if(template.crop_img.width<template.cropCanvas.width) template.cropCanvas.width = template.crop_img.width;
-    // if(template.crop_img.height<template.cropCanvas.height) template.cropCanvas.height = template.crop_img.height;
+    // console.log('cropping',cc);
 
-    // if (template.crop_img.width > template.cropCanvas.width)
-    //   cc.x = (template.crop_img.width - template.cropCanvas.width) / 2.0;
-    // if (template.crop_img.height > template.cropCanvas.height)
-    //   cc.y = (template.crop_img.height - template.cropCanvas.height) / 2.0;
-    // console.log(cc);
-    var crop_ctx = template.cropCanvas.getContext("2d");
+    var crop_ctx = cropCanvas.getContext("2d");
     //
     // resize original to a 100x100 square for the thumbnail
+    //
     crop_ctx.drawImage(
-      template.crop_img,
+      this, //template.crop_img,
       // original x/y w/h
       cc.x, cc.y,
       100, 100 * cc.width/cc.height
@@ -95,101 +130,109 @@ Template.upload.onRendered(function () {
       // 0, 0,
       // template.cropCanvas.width, template.cropCanvas.height
     );
-
-    // crop_dataUrl = template.cropCanvas.toDataURL();
-    // cropped = document.createElement('img');
-    // cropped.id = 'cropped';
-    // cropped.src = crop_dataUrl;
-    // template.preview.appendChild(cropped);
+    console.log(`cropImage cropped into cropCanvas ${template.file.name}`);
+    DBImages.insert({
+       src: cropDataUrl
+      ,thumbnail: template.cropCanvas.toDataURL()
+      ,size: template.file.size
+      ,name: template.file.name
+      ,type: template.file.type
+      ,created: new Date()
+      ,md5hash: template.md5hash
+      ,user: template.meteoruser
+    }, function imageInserted(error,id) {
+      if(error) {
+        console.error(error);
+      } else {        
+        console.log(`image ${id} inserted`);
+      }
+      template.processNext();
+    });
   }
-  // console.info(this.view.name+'.rendered',this);
+  //
+  // define onload handler for reader to read in the file
+  //
+  template.reader.onload = (function(aImg) { return function(e) {
+    if(template.file.type in AcceptedFileTypes) {
+      template.md5hash = md5(e.target.result);
+      if(template.debug) {
+        console.log(`read file ${template.file.name} => ${template.md5hash}`);
+      }
+      Meteor.call('imageExists', template.md5hash, function imageExits(err, exists){
+        if(exists) {
+          Bootstrap3boilerplate.alert('danger',`Image ${template.file.name} has been uploaded before`, true);
+          template.processNext();
+        } else {
+          // set crop_img.src so crop_img.onload fires which creates the thumbnail
+          // https://developer.mozilla.org/en-US/docs/Using_files_from_web_applications
+          aImg.src = e.target.result;
+        }
+      });
+    } else {
+      Bootstrap3boilerplate.alert('danger',`Image ${template.file.type} not of acceptable mime-type`, true);
+      template.processNext();
+    }
+  };
+  })(template.crop_img);
 });
 Template.upload.events({
   'change #fileinput': function(e,template) {
     // console.info(e.target);
-    var file = document.getElementById('fileinput').files[0];
-    // set crop_img.src so crop_img.onload fires
-    // https://developer.mozilla.org/en-US/docs/Using_files_from_web_applications
-    template.reader.onload = (function(aImg) { return function(e) {
-      aImg.src = e.target.result;
-      var md5hash = md5(e.target.result);
-      Meteor.call('imageExists', md5hash, function(err, exists){
-        if(exists)
-        {
-          Bootstrap3boilerplate.alert('danger','Image '+file.name+' has been uploaded before', true);
-          template.$('button.upload').addClass('hidden');
-        }
-      });
-    };
-    })(template.crop_img);
-    template.reader.readAsDataURL(file);
-    template.$('button.upload').removeClass('hidden');
-    $('div.crop_img').removeClass('hidden');
+    template.filesIndex = 0;
+    template.files = document.getElementById('fileinput').files;
+    template.$('h1').addClass('hidden');
+    template.$('img').removeClass('hidden');
+    template.processNext();
+    // template.file = template.files.item(template.filesIndex++);
+    // template.reader.readAsDataURL(template.file);
+    // template.$('button.upload').removeClass('hidden');
+    // $('div.crop_img').removeClass('hidden');
   },
-  'submit form': function(e, template) {
-      // http://meteortuts.com/meteor-js-upload-image-to-collection/
-      e.preventDefault();
-      template.$('button.upload').fadeOut();
-      var form = e.target;
-      var file = template.find('#fileinput').files[0];
-      var meteoruser = Meteor.userId();
-
-      template.reader.onload = function(event) {
-        var md5hash = md5(event.target.result);
-        // console.log(md5hash);
-        Meteor.call('imageExists', md5hash, function(err, exists){
-          if(exists)
-          {
-            Bootstrap3boilerplate.alert('danger','This image has been uploaded before', true);
-          }
-          else
-          {
-            DBImages.insert({
-               src: event.target.result
-              ,size: file.size
-              ,name: file.name
-              ,type: file.type
-              ,created: new Date()
-              ,md5hash: md5hash
-              ,thumbnail: template.cropCanvas.toDataURL()
-              ,user: meteoruser
-            });
-            Session.set('uploaded', Session.get('uploaded')+1);
-            Session.set('imageStart', 0);
-            Meteor.call('allImageIds', function(err,res){
-              AllImages.set(res);
-            });
-          }
-          template.$('input[type="reset"]').click();
-          template.$('button.upload').fadeIn();
-        });
-      };
-      template.reader.readAsDataURL(file);
-      template.$('button.upload').addClass('hidden');
-      $('div.crop_img').addClass('hidden');
+  'click div.mongodb-image-droppable'(e,template) {
+    e.preventDefault();
+    e.stopPropagation();
+    template.$('#fileinput').trigger('click');
+  },
+  'dragover div.mongodb-image-droppable'(e,t){
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.classList.add('dragover');
+  },
+  'dragleave div.mongodb-image-droppable'(e,t){
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.classList.remove('dragover');
+  },
+  'drop div.mongodb-image-droppable'(e,template){
+    e.preventDefault();
+    e.stopPropagation();
+    e.currentTarget.classList.remove('dragover');
+    template.filesIndex = 0;
+    if(e.originalEvent.dataTransfer) {
+      template.files = e.originalEvent.dataTransfer.files;
+    } else if(e.originalEvent.target) {
+      template.files = e.originalEvent.target.files;
+    }
+    template.$('h1').addClass('hidden');
+    template.$('img').removeClass('hidden');
+    template.processNext();
   }
 });
 
 Template.thumbnails.onCreated(function() {
   var template = this;
-  // console.log(template.view.name+'.created');
-  // this.autorun(function () {
-  //   // var imageStart = Session.get('imageStart');
-  //   template.numberofimages = 0;
-  //   // console.log(template.view.name+'.autorun '+imageStart);
-  //   template.handle = template.subscribe('thumbnails', Session.get('imageStart'),function(){
-  //     console.log('thumbnails subscribed');
-  //   });
-  // });
 });
 Template.thumbnails.onRendered(function(){
   var template = this;
 });
 Template.thumbnails.onDestroyed(function() {
-  console.log(this.view.name+'.destroyed');
+  var template = this;
+  if(template.debug) {
+    console.log(this.view.name+'.destroyed');
+  }
 });
 Template.thumbnails.helpers({
-  pages: function () {
+  pages() {
     var pages = [];
     var page = 1;
     var number = ImagesPerPage;//+1;
@@ -205,7 +248,7 @@ Template.thumbnails.helpers({
     return pages;
   },
   // helper to get all the thumbnails only called ONCE, even when the subscription for DBImages changes
-  images: function() {
+  images() {
     // console.log('thumbnails helper');
     return DBImages.find({
       thumbnail:{$exists:1},
@@ -215,17 +258,24 @@ Template.thumbnails.helpers({
       sort:{created: -1 }
     });
   },
-  ready: function() {
+  ready(){
     return ThumbnailsHandle.ready();
+  },
+  imageid(){
+    var img = DBImages.findOne();
+    return img ? img._id : null;
   },
 });
 Template.thumbnails.events({
-  'click a.page':function(e,t) {
+  'click a.page'(e,t) {
     var a = $(e.target);
     var s = parseInt(a.attr('start'));
     // stopping the handle will remove all the images
     // t.handle.stop();
     Session.set('imageStart', s);
+  },
+  'click button.uploadModal'(e,t) {
+    Bootstrap3boilerplate.Modal.show();
   },
 });
 
@@ -239,8 +289,8 @@ Template.thumbnail.onDestroyed(function(){
 
 Template.image.onCreated(function(){
   var self = this;
-  self.img = new ReactiveVar({});
   self.autorun(function(){
+    self.img = new ReactiveVar({name:'loading',md5hash:'loading',size:0,type:'loading',src:new ReactiveVar('/circle-loading-animation.gif')});
     var params = FlowRouter.current().params;
     FlowRouter.watchPathChange();
     self.subscribe('image', params.id, function(){
@@ -285,14 +335,11 @@ Template.image.onRendered(function() {
 Template.image.helpers({
   img: function() {
     var instance = Template.instance();
-    // var params = FlowRouter.current().params;
-    // return DBImages.findOne({_id: params.id});
-    // console.log('image.img');
     return instance.img.get();
   },
   md5hash: function() {
     var image = this;
-    if(image && image.src)
+    if(image && image._id && image.src)
     {
       var update = false;
 
@@ -328,7 +375,7 @@ Template.image.helpers({
   },
   prev: function() {
     var instance = Template.instance();
-    var images = AllImages.get();
+    var images = AllImageIDs.get();
     var img = instance.img.get();
     if(img && img._id) {
       var id = img._id;
@@ -342,7 +389,7 @@ Template.image.helpers({
   },
   next: function() {
     var instance = Template.instance();
-    var images = AllImages.get();
+    var images = AllImageIDs.get();
     var img = instance.img.get();
     if(img && img._id) {
       var id = img._id;
@@ -356,12 +403,6 @@ Template.image.helpers({
   }
 });
 Template.image.events({
-  // 'click .carousel': function(e,t) {
-  //   var id = t.$(e.currentTarget).data('id');
-  //   var url = `/image/${id}`;
-  //   console.log(url);
-  //   FlowRouter.go(url);
-  // },
   'click a.delete': function(e,t) {
     if(confirm('Really Delete?'))
     {
@@ -423,12 +464,6 @@ Template.admin.helpers({
   }
 });
 
-Template.imageLoading.helpers({
-  size: function () {
-    return Session.get('loadingSize');
-  }
-});
-
 Template.userImages.onCreated(function(){
   var template = this;
   template.handle = null;
@@ -442,7 +477,6 @@ Template.userImages.onCreated(function(){
     Meteor.call('user_name', template.user, function(err,res){
       if(!err) 
       {
-        // console.log('set user_name to '+res.email);
         Session.set('user_name', res.email);
         Session.set('user_banned', res.banned);
       } else console.error(err);
@@ -500,25 +534,6 @@ Template.other_user.helpers({
     return self.user_name.get();
   }
 });
-/*
- * requires role moment
- */
-Template.momentTemplate.helpers({
-  createPageFromTemplates: function() {
-    return EJSON.stringify(Session.get('createPageFromTemplates'), {indent: true});
-  },
-  isDevelopment: function() {
-    return __meteor_runtime_config__.isDevelopment;
-  }
-});
-Template.momentTemplate.events({
-  'click button.createPageFromTemplates': function(e,t) {
-    console.info('calling createPageFromTemplates');
-    Meteor.call('createPageFromTemplates', function(e,r){
-      if(!e) Session.set('createPageFromTemplates', r);
-    });
-  }
-});
 
 Bootstrap3boilerplate.Navbar.left = function() {
   return [
@@ -536,8 +551,10 @@ Bootstrap3boilerplate.Navbar.right = function() {
   }
   return right;
 };
-Bootstrap3boilerplate.init(FlowRouter);
-Bootstrap3boilerplate.Footer.show.set(false);
+Bootstrap3boilerplate.init();
+Bootstrap3boilerplate.Footer.show.set(true);
+Bootstrap3boilerplate.Modal.title.set('Upload Images');
+Bootstrap3boilerplate.Modal.dynamicTemplate.set('upload');
 
 Tracker.autorun(function () {
   Template.thumbnails.numberofimages = 0;
@@ -545,7 +562,6 @@ Tracker.autorun(function () {
     console.log('thumbnails subscribed '+ThumbnailsHandle.subscriptionId);
   });
 });
-
 Tracker.autorun(function () {
   var uploaded = Session.get('uploaded');
   Meteor.call('imageCount', function(err,res){
@@ -553,21 +569,14 @@ Tracker.autorun(function () {
       Session.set('imageCount', res);
   });
 });
-
 Tracker.autorun(function () {
   // ...
   Bootstrap3boilerplate.ProjectName.set({text:Session.get('imageCount')+' MongoDB Images',href:'/'});
 });
 
 Meteor.startup(function(){
-  // DBImages.distinct('user',function(err, result){
-  //   console.info('distinct users', result);
-  // });
-  // Meteor.call('createPageFromTemplates', function(e,r){
-  //   if(!e) Session.set('createPageFromTemplates', r);
-  // });
-  Meteor.call('allImageIds', function(err,res){
-    AllImages.set(res);
+  Meteor.call('allImageIds', function(err,images){
+    AllImageIDs.set(images);
   });
 });
 
