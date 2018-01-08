@@ -117,7 +117,7 @@
 			{{/if}}
 			{{#if src}}
 				<ul class="image-info">
-				<li>{{name}}</li>
+				<li><a target=_new href="{{src.get}}">{{name}}</a></li>
 				<li>size {{size}} bytes</li>
 				<li>mime-type {{type}}</li>
 				{{#if isInRole 'admin'}}

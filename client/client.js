@@ -27,7 +27,9 @@ Template.upload.onCreated(function(){
   template.filesIndex = 0;
   template.file = null;
   template.md5hash = "";
-  template.meteoruser = Meteor.userId();
+  template.autorun(function(){
+    template.userId = Meteor.userId();
+  });
 });
 Template.upload.onRendered(function () {
   var template = this;
@@ -139,7 +141,7 @@ Template.upload.onRendered(function () {
       ,type: template.file.type
       ,created: new Date()
       ,md5hash: template.md5hash
-      ,user: template.meteoruser
+      ,user: template.userId
     }, function imageInserted(error,id) {
       if(error) {
         console.error(error);

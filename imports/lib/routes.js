@@ -17,6 +17,14 @@ FlowRouter.route('/image/:id', {
   }
 });
 
+// FlowRouter.route('/image/:id/src', {
+//   name: 'imageSrc',
+//   action: function(params) {
+//     // console.log('image', params);
+//     this.render("imageSrc");
+//   }
+// });
+
 FlowRouter.route('/user/:user', {
   name: 'user_images',
   action: function(params) {
