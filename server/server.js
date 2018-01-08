@@ -53,6 +53,7 @@ Meteor.publish('user_images', function(user){
 
 DBImages.allow({
   insert: function(userId, doc) {
+    doc.user = userId;
     return userId;
   },
   update: function(userId, doc, fieldNames, modifier) {
