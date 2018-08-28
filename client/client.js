@@ -20,6 +20,11 @@ Session.setDefault('src', new Date());
 ThumbnailsHandle = null;
 AllImageIDs = new ReactiveVar([]);
 
+Template.registerHelper('cssclasses',function(){
+  // console.log(`cssclasses ${this.cssclasses}`);
+  return this.cssclasses ? this.cssclasses : '';
+});
+
 Template.upload.onCreated(function(){
   var template = this;
   template.debug = false;
@@ -288,14 +293,27 @@ Template.thumbnail.onRendered(function(){
 Template.thumbnail.onDestroyed(function(){
   this.$('div.off').addClass('off')
 });
+Template.thumbnail.helpers({
+  // cssclasses(){
+  //   console.log(this);
+  // }
+});
 
 Template.image.onCreated(function(){
   var self = this;
+  self.cssclasses = new ReactiveVar('');
   self.autorun(function(){
-    self.img = new ReactiveVar({name:'loading',md5hash:'loading',size:0,type:'loading',src:new ReactiveVar('/circle-loading-animation.gif')});
+    self.img = new ReactiveVar({
+      name:'loading',
+      md5hash:'loading',
+      size:0,
+      type:'loading',
+      src:new ReactiveVar('/circle-loading-animation.gif'),
+    });
     var params = FlowRouter.current().params;
     FlowRouter.watchPathChange();
     self.subscribe('image', params.id, function(){
+      self.cssclasses.set("");
       var img = DBImages.findOne({_id: params.id});
       if(img)
       {
@@ -312,6 +330,7 @@ Template.image.onCreated(function(){
           {
             // set this routes img src
             img.src.set(src);
+            self.cssclasses.set(img.cssclasses);
           }
         });
       }
@@ -338,6 +357,10 @@ Template.image.helpers({
   img: function() {
     var instance = Template.instance();
     return instance.img.get();
+  },
+  cssclassesImage(){
+    var instance = Template.instance();
+    return instance.cssclasses.get();    
   },
   md5hash: function() {
     var image = this;
@@ -402,9 +425,30 @@ Template.image.helpers({
         return false;
       }
     }
+  },
+  active(c) {
+    // console.log(c,this);
+    if(c == undefined) {
+      return this.cssclasses == undefined || this.cssclasses == "" ? "checked" : "";
+    } else {
+      return this.cssclasses == c ? "checked" : "";
+    }
+  },
+  commentOut(){
+    return true;
   }
 });
 Template.image.events({
+  'change #cssclasses'(e,t){
+    var c = e.currentTarget;
+    var id = c.dataset.imageId;
+    var image = DBImages.findOne(id);
+    var old = image.cssclasses;
+    DBImages.update(id,{$set:{cssclasses: c.value}},function(r){
+      // t.$('.fullscreen').removeClass(old).addClass(c.value);
+      t.cssclasses.set(c.value);
+    })
+  },
   'click a.delete': function(e,t) {
     if(confirm('Really Delete?'))
     {

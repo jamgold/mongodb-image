@@ -31,6 +31,15 @@
 	transform-style: preserve-3d;
 	transform: rotateY(180deg);
 }
+.transform90 {
+	transform: rotate(90deg);
+}
+.transform180 {
+	transform: rotate(180deg);
+}
+.transform270 {
+	transform: rotate(270deg);
+}
 .image-size {
 	font-size: 8px;
 	color: #ccc;
@@ -55,18 +64,23 @@
 	background-position: 0px 0px;
 	background-repeat: no-repeat;
 	background-position: center;
-	/* compensate for body margin */
-	/*margin-top: -50px;*/
 	display: table;
 	width: 90%;
-	height: 90%; /* For at least Firefox */
+	height: 90%; 
 	z-index: -10;
+}
+.footer{
+	opacity: 0.5;
 }
 
 div.image.buttons {
-	position:absolute;
+	position:fixed;
 	bottom:30px;
 	right:30px;
+}
+div.image.buttons:hover {
+	background-color: white;
+	opacity: 1.0;
 }
 .starter-template {
 	/*position: relative;*/
