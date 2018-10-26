@@ -259,7 +259,7 @@ Template.thumbnails.helpers({
     // console.log('thumbnails helper');
     return DBImages.find({
       thumbnail:{$exists:1},
-      subscriptionId: ThumbnailsHandle.subscriptionId,
+      // subscriptionId: ThumbnailsHandle.subscriptionId,
     },{
       limit:ImagesPerPage,
       sort:{created: -1 }
@@ -302,14 +302,15 @@ Template.thumbnail.helpers({
 Template.image.onCreated(function(){
   var self = this;
   self.cssclasses = new ReactiveVar('');
+  self.img = new ReactiveVar({
+    name:'loading',
+    md5hash:'loading',
+    size:0,
+    type:'loading',
+    src:new ReactiveVar('/circle-loading-animation.gif'),
+  });
+
   self.autorun(function(){
-    self.img = new ReactiveVar({
-      name:'loading',
-      md5hash:'loading',
-      size:0,
-      type:'loading',
-      src:new ReactiveVar('/circle-loading-animation.gif'),
-    });
     var params = FlowRouter.current().params;
     FlowRouter.watchPathChange();
     self.subscribe('image', params.id, function(){
@@ -604,8 +605,9 @@ Bootstrap3boilerplate.Modal.dynamicTemplate.set('upload');
 
 Tracker.autorun(function () {
   Template.thumbnails.numberofimages = 0;
+  if(ThumbnailsHandle) ThumbnailsHandle.stop();
   ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'),function(){
-    console.log('thumbnails subscribed '+ThumbnailsHandle.subscriptionId);
+    console.log(`${DBImages.find().count()} thumbnails subscribed ${ThumbnailsHandle.subscriptionId}`);
   });
 });
 Tracker.autorun(function () {

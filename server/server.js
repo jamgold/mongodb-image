@@ -2,29 +2,32 @@ Meteor.publish('thumbnails', function(imageStart){
   var self = this;
   imageStart = imageStart == undefined ? 0 : imageStart;
   // console.info('thumbnails start:'+ imageStart+' subscriptionId:'+self._subscriptionId);
-  var handle = DBImages.find({
+  var cursor = DBImages.find({
     thumbnail:{$exists:1}
   },{
     fields: {src:0}
     ,sort:{created: -1}
     ,skip: imageStart
     ,limit: ImagesPerPage
-  }).observeChanges({
-    added: function(id, img) {
-      img.subscriptionId = self._subscriptionId;
-      self.added('dbimages', id, img);
-    },
-    removed: function(id) {
-      self.removed('dbimages', id);
-    },
-    changed: function(id, fields) {
-      self.changed('dbimages', id, fields);
-    }
-  });;
-  self.ready();
-  self.onStop(function(){
-    handle.stop();
-  })
+  });
+  console.log(`${cursor.fetch().length} thumbnails published with limit ${ImagesPerPage}`);
+  return cursor;
+  // .observeChanges({
+  //   added: function(id, img) {
+  //     img.subscriptionId = self._subscriptionId;
+  //     self.added('dbimages', id, img);
+  //   },
+  //   removed: function(id) {
+  //     self.removed('dbimages', id);
+  //   },
+  //   changed: function(id, fields) {
+  //     self.changed('dbimages', id, fields);
+  //   }
+  // });;
+  // self.ready();
+  // self.onStop(function(){
+  //   cursor.stop();
+  // })
 });
 
 Meteor.publish('image',function(id) {
