@@ -2,6 +2,10 @@ import '/imports/lib/routes.js';
 import { FlowRouter } from 'meteor/ostrio:flow-router-extra';
 var md5 = require('md5');
 
+if(Meteor.flush == undefined)
+Meteor.flush = function() {
+  console.info('Meteor.flush deprecated')
+}
 optionsTest = function(args, options) {
   options = options || {};
 
@@ -13,12 +17,13 @@ AcceptedFileTypes = {"image/png":true,"image/jpeg":true,"image/jpg":true,"image/
 Session.setDefault('uploaded', 0);
 Session.setDefault('imageStart', 0);
 Session.setDefault('imageCount', 0);
-Session.setDefault('loadingSize', 0);
-Session.setDefault('distinct_users',[]);
 Session.setDefault('src', new Date());
 
 ThumbnailsHandle = null;
-AllImageIDs = new ReactiveVar([]);
+// AllImageIDs = new ReactiveVar([]);
+Contributors = new ReactiveVar([]);
+TagSearch = new ReactiveVar([]);
+TagsImgId = null;
 
 Template.registerHelper('cssclasses',function(){
   // console.log(`cssclasses ${this.cssclasses}`);
@@ -51,9 +56,6 @@ Template.upload.onRendered(function () {
       template.files = [];
       Session.set('uploaded', Session.get('uploaded')+1);
       Session.set('imageStart', 0);
-      Meteor.call('allImageIds', function(err,images){
-        AllImageIDs.set(images);
-      });
       template.$('h1').removeClass('hidden');
       template.$('img').addClass('hidden');
       Bootstrap3boilerplate.Modal.hide();
@@ -138,20 +140,22 @@ Template.upload.onRendered(function () {
       // template.cropCanvas.width, template.cropCanvas.height
     );
     console.log(`cropImage cropped into cropCanvas ${template.file.name}`);
+
     DBImages.insert({
        src: cropDataUrl
       ,thumbnail: template.cropCanvas.toDataURL()
       ,size: template.file.size
       ,name: template.file.name
       ,type: template.file.type
-      ,created: new Date()
       ,md5hash: template.md5hash
-      ,user: template.userId
     }, function imageInserted(error,id) {
       if(error) {
         console.error(error);
       } else {        
         console.log(`image ${id} inserted`);
+        // var ids = AllImageIDs.get();
+        // ids.push(id);
+        // AllImageIDs.set(ids);
       }
       template.processNext();
     });
@@ -228,9 +232,14 @@ Template.upload.events({
 
 Template.thumbnails.onCreated(function() {
   var template = this;
+  template.tags = new ReactiveVar(null);
+  Meteor.call('tags',(err,res) => {
+    if(err) console.error(err);else template.tags.set(res);
+  })
 });
 Template.thumbnails.onRendered(function(){
   var template = this;
+  TagsImgId = null;
 });
 Template.thumbnails.onDestroyed(function() {
   var template = this;
@@ -272,6 +281,12 @@ Template.thumbnails.helpers({
     var img = DBImages.findOne();
     return img ? img._id : null;
   },
+  tags(){
+    return Template.instance().tags.get();
+  },
+  tagged(){
+    return TagSearch.get();
+  }
 });
 Template.thumbnails.events({
   'click a.page'(e,t) {
@@ -291,7 +306,8 @@ Template.thumbnail.onRendered(function(){
   this.$('div.off').removeClass('off');
 });
 Template.thumbnail.onDestroyed(function(){
-  this.$('div.off').addClass('off')
+  //
+  this.$('div.off').addClass('off');
 });
 Template.thumbnail.helpers({
   // cssclasses(){
@@ -300,9 +316,11 @@ Template.thumbnail.helpers({
 });
 
 Template.image.onCreated(function(){
-  var self = this;
-  self.cssclasses = new ReactiveVar('');
-  self.img = new ReactiveVar({
+  var instance = this;
+  instance.cssclasses = new ReactiveVar('');
+  instance.next = new ReactiveVar(null);
+  instance.prev = new ReactiveVar(null);
+  instance.img = new ReactiveVar({
     name:'loading',
     md5hash:'loading',
     size:0,
@@ -310,19 +328,26 @@ Template.image.onCreated(function(){
     src:new ReactiveVar('/circle-loading-animation.gif'),
   });
 
-  self.autorun(function(){
+  instance.autorun(function(){
     var params = FlowRouter.current().params;
     FlowRouter.watchPathChange();
-    self.subscribe('image', params.id, function(){
-      self.cssclasses.set("");
+    instance.subscribe('image', params.id, function(){
+      TagsImgId = null;
+      $('#myTags').tagit('removeAll');
+      instance.cssclasses.set("");
       var img = DBImages.findOne({_id: params.id});
       if(img)
       {
+        if(img.tags) {
+          img.tags.forEach(function(tag){
+            $("#myTags").tagit("createTag", tag);
+          })
+        }
         // set the preliminary src to animation and make it reactive
         img.src = new ReactiveVar('/circle-loading-animation.gif');
-        self.img.set(img);
+        instance.img.set(img);
         // now call method to get src for id
-        Meteor.call('src', params.id, function(err,src){
+        Meteor.call('src', params.id, function(err,res){
           if(err)
           {
             console.log(err);
@@ -330,11 +355,15 @@ Template.image.onCreated(function(){
           else
           {
             // set this routes img src
-            img.src.set(src);
-            self.cssclasses.set(img.cssclasses);
+            // console.log(`prev ${res.prev}, next ${res.next}`);
+            img.src.set(res.src);
+            instance.next.set(res.next);
+            instance.prev.set(res.prev);
+            instance.cssclasses.set(img.cssclasses);
           }
         });
       }
+      TagsImgId = params.id;
     });
   });
 });
@@ -355,6 +384,9 @@ Template.image.onRendered(function() {
   }
 });
 Template.image.helpers({
+  imgId(){
+    return FlowRouter.current().params.id;
+  },
   img: function() {
     var instance = Template.instance();
     return instance.img.get();
@@ -401,31 +433,39 @@ Template.image.helpers({
   },
   prev: function() {
     var instance = Template.instance();
-    var images = AllImageIDs.get();
-    var img = instance.img.get();
-    if(img && img._id) {
-      var id = img._id;
-      var pos = images.indexOf(id);
-      if(pos>0) {
-        return images[pos-1];
-      } else {
-        return false;
-      }
-    }
+    return instance.prev.get();
+    // var images = AllImageIDs.get();
+    // var img = instance.img.get();
+    // var prev = false;
+    // if(img && img._id) {
+    //   var id = img._id;
+    //   var pos = images.indexOf(id);
+    //   if(pos>0) {
+    //     prev = images[pos-1];
+    //   }
+    //   Meteor.call('prevImage', img.order, (err,res) => {
+    //     if(err) console.error(err);else console.info(`${prev} and ${res}`);
+    //   })
+    // }
+    // return prev;
   },
   next: function() {
     var instance = Template.instance();
-    var images = AllImageIDs.get();
-    var img = instance.img.get();
-    if(img && img._id) {
-      var id = img._id;
-      var pos = images.indexOf(id);
-      if(pos<images.length) {
-        return images[pos+1];
-      } else {
-        return false;
-      }
-    }
+    return instance.next.get();
+    // var images = AllImageIDs.get();
+    // var img = instance.img.get();
+    // var next = false;
+    // if(img && img._id) {
+    //   var id = img._id;
+    //   var pos = images.indexOf(id);
+    //   if(pos<images.length) {
+    //     next = images[pos+1];
+    //   }
+    //   Meteor.call('nextImage', img.order, (err,res) => {
+    //     if(err) console.error(err);else console.info(`${next} and ${res}`);
+    //   });
+    // }
+    // return next;
   },
   active(c) {
     // console.log(c,this);
@@ -512,14 +552,14 @@ Template.admin.helpers({
 });
 
 Template.userImages.onCreated(function(){
-  var template = this;
+  const template = this;
   template.handle = null;
+
   template.autorun(function(){
     FlowRouter.watchPathChange();
     template.user = FlowRouter.current().params.user;
-    Session.set('loadingSize', template.user);
     template.handle = template.subscribe('user_images', template.user, function(){
-      console.log('subscribed to images for '+template.user);
+      console.log(`subscribed to ${DBImages.find({user:template.user}).fetch().length} images for ${template.user}`);
     });
     Meteor.call('user_name', template.user, function(err,res){
       if(!err) 
@@ -531,16 +571,11 @@ Template.userImages.onCreated(function(){
   })
 });
 Template.userImages.helpers({
-  distinct_users: function () {
-    FlowRouter.watchPathChange();
-
-    DBImages.distinct('user',function(err, result){
-      Session.set('distinct_users', result);
-    });
-    return Session.get('distinct_users');
+  contributors(){
+    return Contributors.get();
   },
-  activeUser: function() {
-    return this.toString() == Session.get('loadingSize');
+  activeUser: function(c) {
+    return c.id.toString() == Template.instance().user;
   },
   images: function() {
     //
@@ -581,6 +616,140 @@ Template.other_user.helpers({
     return self.user_name.get();
   }
 });
+Template.other_user.events({
+  'click .banning'(event, instance){
+    let user = event.currentTarget.dataset.contributor;
+    if(event.currentTarget.classList.contains('ban')){
+      // console.log(`ban ${user}`);
+      if(confirm('Really ban this user?'))
+      {
+        Meteor.call('ban', user, true, function(err,res){
+          if(err)
+          {
+            console.log(err)
+          }
+          else
+          {
+            event.currentTarget.classList.remove('ban');
+            event.currentTarget.classList.add('banned');
+            event.currentTarget.innerHTML = res;
+          }
+          // console.info(e.target.className,err,res);
+        });
+      }
+    } else {
+      // console.log(`unban ${user}`);
+      if(confirm('Really unban this user?'))
+      {
+        Meteor.call('ban', user, false, function(err,res){
+          if(err)
+          {
+            console.log(err)
+          }
+          else
+          {
+            event.currentTarget.classList.remove('banned');
+            event.currentTarget.classList.add('ban');
+            event.currentTarget.innerHTML = res;
+          }
+          // console.info(e.target.className,err,res);
+        });
+      }
+    }
+  }
+});
+
+Template.tagit.onRendered(function(){
+  const instance = this;
+  console.info(`${instance.view.name}.onRendered`,instance.data);
+  
+  let options = {
+    placeholderText: instance.data.title,
+    allowDuplicates: false,
+    allowSpaces: false,
+    caseSensitive: false,
+    readOnly: false,
+    tagLimit: null,
+    singleField: true,
+    fieldName: 'tag',
+    autocomplete: {
+      delay: 0,
+      minLength: 2,
+      autoFocus: true,
+    }
+  };
+  let useHook = true;
+  // instance.autorun(function(){
+    let userId = Meteor.userId();
+    // console.log(`${instance.view.name}.autorun ${userId}`);
+    if(instance.data.tags) {
+      //
+      // if template was called with array of tags, use those
+      //
+      options['availableTags'] = instance.data.tags;
+      //
+      // make sure we can only add existing tags
+      //
+      options['beforeTagAdded'] = function(event, ui) {
+        return instance.data.tags.indexOf(ui.tagLabel)>=0;
+      };
+      options['afterTagAdded'] = function(event, ui) {
+        if(useHook) {
+          let tags = TagSearch.get();
+          tags.push(ui.tagLabel);
+          TagSearch.set(tags);
+        }
+      };
+      options['afterTagRemoved'] = function(event, ui) {
+        if(useHook){
+          let tags = TagSearch.get();
+          TagSearch.set(tags.filter((tag) => {return ui.tagLabel != tag}));
+        }
+      };
+    } else {
+      //
+      // add autocomplete from meteor call
+      //
+      options['autocomplete']['source'] = function(request, callback){
+        Meteor.call('tags', request.term, (err,res) => {
+          var options = [];
+          if(err) console.error(err);else options = res.map( (t) => {return {label:t, value: t}});
+          callback( options );
+        });
+      };
+      options['afterTagAdded'] = function(event, ui) {
+        if(TagsImgId){
+          // console.log(`added ${ui.tagLabel} to ${TagsImgId}`,ui);
+          DBImages.update(TagsImgId,{$push:{tags: ui.tagLabel}});
+        }
+      };
+      options['afterTagRemoved'] = function(event, ui) {
+        if(TagsImgId){
+          // console.log(`removed ${ui.tagLabel} from ${TagsImgId}`,ui);
+          DBImages.update(TagsImgId,{$pull:{tags: ui.tagLabel}});
+        }
+      };
+      //
+      // only let logged-in users tag
+      //
+      options['readOnly'] = userId == null;
+    }
+    instance.$("#myTags").tagit( options );
+  // });
+  
+  if(instance.data.tagged) {
+    useHook = false;
+    instance.data.tagged.forEach(function(tag){
+      instance.$("#myTags").tagit("createTag", tag);
+    });
+    useHook = true;
+  }
+
+  let input = instance.findAll('.ui-autocomplete-input');
+  if(input.length>0) {
+    input[0].spellcheck = false;
+  }
+});
 
 Bootstrap3boilerplate.Navbar.left = function() {
   return [
@@ -599,14 +768,14 @@ Bootstrap3boilerplate.Navbar.right = function() {
   return right;
 };
 Bootstrap3boilerplate.init();
-Bootstrap3boilerplate.Footer.show.set(true);
+Bootstrap3boilerplate.Footer.show.set(false);
 Bootstrap3boilerplate.Modal.title.set('Upload Images');
 Bootstrap3boilerplate.Modal.dynamicTemplate.set('upload');
 
 Tracker.autorun(function () {
   Template.thumbnails.numberofimages = 0;
   if(ThumbnailsHandle) ThumbnailsHandle.stop();
-  ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'),function(){
+  ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'), TagSearch.get(),function(){
     console.log(`${DBImages.find().count()} thumbnails subscribed ${ThumbnailsHandle.subscriptionId}`);
   });
 });
@@ -623,8 +792,13 @@ Tracker.autorun(function () {
 });
 
 Meteor.startup(function(){
-  Meteor.call('allImageIds', function(err,images){
-    AllImageIDs.set(images);
+  console.log('Meteor.startup');
+  Meteor.call('contributors', function(err,res){
+    if(err) {
+      console.error(err);
+    } else {
+      // AllImageIDs.set(res.images);
+      Contributors.set(res.contributors);
+    }
   });
 });
-

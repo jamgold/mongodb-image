@@ -34,8 +34,9 @@ FlowRouter.route('/user/:user', {
 
 FlowRouter.route('/admin', {
   name: 'admin',
-  action: function(params) {
+  async action(params) {
+    import 'meteor/mrt:accounts-admin-ui-bootstrap-3';
     this.render(Bootstrap3boilerplate.layout, "admin", {content: "admin"});
-  }
+  },
 });
 

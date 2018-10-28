@@ -88,7 +88,11 @@ div.image.buttons:hover {
 .image-info {
 	background-color: white;
 	display: inline-block;
-	opacity: 0.7;
+	opacity: 0.3;
+	max-width: 300px;
+}
+.image-info:hover, .image-info li:hover {
+	opacity: 1.0
 }
 form {
 	min-height: 5em;
@@ -107,4 +111,10 @@ a.carousel.prev {
 	position: absolute;
 	left:5px;
 	top: 50%;
+}
+#myTags {
+	font-size: 12px;
+}
+.ui-menu .ui-menu-item {
+	clear: both;
 }

@@ -1,13 +1,19 @@
 <head>
   <title>MongoDB Images</title>
+  <link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1/themes/flick/jquery-ui.css">
 </head>
 
 <template name="thumbnails">
-	{{#if isInRole 'json'}}
-		{{>jsonWell imageid=imageid}}
-	{{else}}
-		<div class="well">Thumbnails</div>
-	{{/if}}
+	<div class="well">
+		{{#if isInRole 'json'}}
+			{{>jsonWell imageid=imageid}}
+		{{else}}
+			Thumbnails
+		{{/if}}
+		{{#if tags}}
+			{{>tagit title="Enter tags to search" tags=tags tagged=tagged}}
+		{{/if}}
+	</div>
 
 	{{#if currentUser}}
 		{{#if isInRole 'banned'}}
@@ -34,7 +40,6 @@
 		{{/each}}
 	</div>
 	{{!instructions}}
-	
 	{{#if isInRole 'moment'}}
 		{{> momentTemplate}}
 	{{/if}}
@@ -51,7 +56,7 @@
 		<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
 			<img class="thumbnail {{cssclasses}}" imageid="{{_id}}" src="{{thumbnail}}"/>
 		</a>
-		<div class="image-size">{{size}}</div>
+		<div class="image-size">{{size}} {{order}}</div>
 	</div>
 </template>
 
@@ -70,40 +75,56 @@
 <template name="userImages">
 	{{#if isInRole 'admin'}}
 		<div class="wall">
-		<h1>All images for {{user_name}}</h1>
+			<h1>All images for {{user_name}}</h1>
 		</div>
-		<div class="row">
-			<div class="col-lg-2">
-				<ul>
-				{{#each distinct_users}}
-					{{#if activeUser}}
-						<li>{{user_name}}</li>
+
+			<div class="row">
+				<div class="col-lg-3">
+					<ul>
+					{{#if contributors.length}}
+						{{#each c in contributors}}
+							{{#if activeUser c}}
+								<li>{{c.email}}</li>
+							{{else}}
+								{{>other_user contributor=c}}
+							{{/if}}
+						{{/each}}
 					{{else}}
-						{{>other_user}}
+						<li>Loading ...</li>
 					{{/if}}
-				{{/each}}
-				</ul>
-			</div>
-			<div class="col-lg-10">
-				<div class="row">
-				{{#each images}}
-					<div class="col-lg-2 col-md-2 col-sm-4">
-					<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
-						<img class="thumbnail" imageid="{{_id}}" src="{{thumbnail}}"/>
-						<div class="image-size">{{size}}</div>
-					</a>
+					</ul>
+				</div>
+				<div class="col-lg-9">
+					<div class="row">
+						{{#if Template.subscriptionsReady}}
+							{{#each images}}
+								<div class="col-lg-2 col-md-2 col-sm-4">
+								<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
+									<img class="thumbnail" imageid="{{_id}}" src="{{thumbnail}}"/>
+									<div class="image-size">{{size}}</div>
+								</a>
+								</div>
+							{{/each}}
+						{{else}}
+							<center><img src="/circle-loading-animation.gif"></center>
+						{{/if}}
 					</div>
-				{{/each}}
 				</div>
 			</div>
-		</div>
 	{{else}}
 		Must be admin to see this...
 	{{/if}}
 </template>
 
 <template name="other_user">
-	<li><a href="/user/{{this}}">{{other_user_name}}</a></li>
+	<li>
+		<a href="/user/{{contributor.id}}">{{contributor.email}}</a>
+			{{#if contributor.banned}}
+				<a data-contributor="{{contributor.id}}" class="banning banned">banned</a>
+			{{else}}
+		 		<a data-contributor="{{contributor.id}}" class="banning ban">ban</a>
+	 		{{/if}}
+	</li>
 </template>
 
 <template name="image">
@@ -116,18 +137,21 @@
 			<a class="btn carousel next" href="/image/{{next}}"><span class="glyphicon glyphicon-chevron-right"></span></a>
 			{{/if}}
 			{{#if src}}
-				<ul class="image-info">
-				<li><a target=_new href="{{src.get}}">{{name}}</a></li>
-				<li>size {{size}} bytes</li>
-				<li>mime-type {{type}}</li>
-				{{#if isInRole 'admin'}}
-					<li>{{{user_banned}}} <a href="/user/{{user}}">{{user_name}}</a></li>
-				{{/if}}
-				</ul>
+				<div class="image-info">
+					<ul>
+						<li><a target=_new href="{{src.get}}">{{name}}</a></li>
+						<li>size {{size}} bytes</li>
+						<li>mime-type {{type}}</li>
+						{{#if isInRole 'admin'}}
+							<li>{{{user_banned}}} <a href="/user/{{user}}">{{user_name}}</a></li>
+						{{/if}}
+					</ul>
+					{{>tagit title="Enter tags for this image"}}
+				</div>
 				{{#if commentOut}}
-				<div class="fullscreen {{cssclassesImage}}" style="background-image: url( {{src.get}} )"></div>
+					<div class="fullscreen {{cssclassesImage}}" style="background-image: url( {{src.get}} )"></div>
 				{{else}}
-				<img src="{{src.get}}" class="fullscreen {{cssclasses}}"/>
+					<img src="{{src.get}}" class="fullscreen {{cssclasses}}"/>
 				{{/if}}
 				<div class="image buttons">
 				  {{#if canDelete user}}
@@ -179,16 +203,23 @@ reader.onload = function(e) {
 </template>
 
 <template name="jsonWell">
-	<div class="well">
 		<p>This app now also supports two REST methods</p>
 		<p style="border:1px solid #ccc;padding: 1em">
 			<a target=_new href="/api/json/images/">/api/json/images/</a><br/>
 			<a target=_new href="/api/json/image/{{imageid}}">/api/json/image/<i>imageid</i></a>
 		</p>
 		both of which will return a JSON structure
-	</div>
 </template>
 
 <template name="404">
 	<h1>Page not found</h1>
+</template>
+
+<template name="tagit">
+	<ul id="myTags" class="ui-front">
+    <!-- Existing list items will be pre-added to the tags -->
+    {{!each tag in tags}}
+    <!-- <li>{{tag}}</li> -->
+    {{!each}}
+	</ul>
 </template>
