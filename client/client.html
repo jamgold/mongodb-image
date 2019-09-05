@@ -1,6 +1,6 @@
 <head>
   <title>MongoDB Images</title>
-  <link rel="stylesheet" type="text/css" href="http://ajax.googleapis.com/ajax/libs/jqueryui/1/themes/flick/jquery-ui.css">
+  <link rel="stylesheet" type="text/css" href="//ajax.googleapis.com/ajax/libs/jqueryui/1/themes/flick/jquery-ui.css">
 </head>
 
 <template name="thumbnails">
@@ -52,7 +52,7 @@
 </template>
 
 <template name="thumbnail">
-	<div class="col-lg-2 col-md-2 col-sm-4 animated off">
+	<div class="col-lg-2 col-md-6 col-sm-6 col-xs-6 animated off">
 		<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
 			<img class="thumbnail {{cssclasses}}" imageid="{{_id}}" src="{{thumbnail}}"/>
 		</a>
