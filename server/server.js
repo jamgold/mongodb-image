@@ -60,28 +60,37 @@ DBImages.before.insert(function(userId, doc) {
 
 Meteor.methods({
   tags(search){
-    let tags = DBImages.distinct('tags');
+    const raw = DBImages.rawCollection();
+    const distinct = Meteor.wrapAsync(raw.distinct, raw);
+
+    let tags = distinct('tags');
     return search == undefined ? tags : tags.filter((tag) => {return tag.includes(search)})
   },
   maxOrder(){
     let images = DBImages.find({order:{$exists:1}},{sort:{order:-1},limit:1}).fetch()
     if(images.length>0) return images[0].order;else return DBImages.find().count()+10;
   },
-  nextImage(order){
-    let images = DBImages.find({order:{$lt:order}},{sort:{order:-1},limit:1}).fetch();
-    // console.log(`nextImage ${order} ${images.length}`);
+  nextImage(order, tags){
+    let images = tags !== undefined && tags.length>0
+      ? DBImages.find({order:{$lt:order},tags:{$all:tags}},{sort:{order:-1},limit:1}).fetch()
+      : DBImages.find({order:{$lt:order}},{sort:{order:-1},limit:1}).fetch()
+    ;
+    // console.log(`nextImage ${order} ${images.length}`, tags);
     if(images.length>0) return images[0]._id;else return null;
   },
-  prevImage(order){
-    let images = DBImages.find({order:{$gt:order}},{sort:{order:1},limit:1}).fetch();
-    // console.log(`prevImage ${order} ${images.length}`);
+  prevImage(order, tags){
+    let images = tags !== undefined && tags.length>0
+      ? DBImages.find({order:{$gt:order},tags:{$all:tags}},{sort:{order:1},limit:1}).fetch()
+      : DBImages.find({order:{$gt:order}},{sort:{order:1},limit:1}).fetch()
+    ;
+    // console.log(`prevImage ${order} ${images.length}`, tags);
     if(images.length>0) return images[0]._id;else return null;
   },
   contributors: function() {
     const self = this;
     var res = {images:[],contributors:[],count: DBImages.find({thumbnail:{$exists:1}}).count()};
-    var raw = DBImages.rawCollection();
-    var distinct = Meteor.wrapAsync(raw.distinct, raw);
+    const raw = DBImages.rawCollection();
+    const distinct = Meteor.wrapAsync(raw.distinct, raw);
 
     // console.time("allImageIds");
     // res.images = DBImages.find({thumbnail:{$exists:1}, },{sort:{created: -1 } } ).fetch().map((image) => {return image._id;});
@@ -118,8 +127,11 @@ Meteor.methods({
       }
     }
   },
-  imageCount: function() {
-    return DBImages.find().count();
+  imageCount: function(tags) {
+    let query = { thumbnail: { $exists: 1 } };
+    if (tags !== undefined && tags.length > 0) query['tags'] = { $all: tags };
+
+    return DBImages.find(query).count();
   },
   imageExists: function(md5hash) {
     var exists = DBImages.findOne({ md5hash: md5hash });
@@ -167,12 +179,12 @@ Meteor.methods({
       return 'only admins can ban users';
     }
   },
-  src: function(id) {
+  src: function(id, tagSearch) {
     var img = DBImages.findOne({ _id: id });
     var res = {src: img ? img.src : '', prev:null,next:null};
     if(img){
-      res.prev = Meteor.call('prevImage', img.order);
-      res.next = Meteor.call('nextImage', img.order);
+      res.prev = Meteor.call('prevImage', img.order, tagSearch);
+      res.next = Meteor.call('nextImage', img.order, tagSearch);
     }
     return res;
   },

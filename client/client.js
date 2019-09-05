@@ -332,6 +332,7 @@ Template.image.onCreated(function(){
     var params = FlowRouter.current().params;
     FlowRouter.watchPathChange();
     instance.subscribe('image', params.id, function(){
+      var tagSearch = TagSearch.get();
       TagsImgId = null;
       $('#myTags').tagit('removeAll');
       instance.cssclasses.set("");
@@ -347,7 +348,7 @@ Template.image.onCreated(function(){
         img.src = new ReactiveVar('/circle-loading-animation.gif');
         instance.img.set(img);
         // now call method to get src for id
-        Meteor.call('src', params.id, function(err,res){
+        Meteor.call('src', params.id, tagSearch, function(err,res){
           if(err)
           {
             console.log(err);
@@ -660,9 +661,13 @@ Template.other_user.events({
 });
 
 Template.tagit.onRendered(function(){
+  //
+  // https://github.com/aehlke/tag-it/blob/master/README.markdown
+  //
   const instance = this;
-  console.info(`${instance.view.name}.onRendered`,instance.data);
-  
+  let useHook = true;
+  // console.info(`${instance.view.name}.onRendered`,instance.data);
+
   let options = {
     placeholderText: instance.data.title,
     allowDuplicates: false,
@@ -676,9 +681,8 @@ Template.tagit.onRendered(function(){
       delay: 0,
       minLength: 2,
       autoFocus: true,
-    }
+    },
   };
-  let useHook = true;
   // instance.autorun(function(){
     let userId = Meteor.userId();
     // console.log(`${instance.view.name}.autorun ${userId}`);
@@ -717,6 +721,12 @@ Template.tagit.onRendered(function(){
           callback( options );
         });
       };
+      options['onTagClicked'] = function(event,ui) {
+        var tags = TagSearch.get();
+        tags.push(ui.tagLabel);
+        TagSearch.set(tags);
+        FlowRouter.go('/');
+      };
       options['afterTagAdded'] = function(event, ui) {
         if(TagsImgId){
           // console.log(`added ${ui.tagLabel} to ${TagsImgId}`,ui);
@@ -727,6 +737,20 @@ Template.tagit.onRendered(function(){
         if(TagsImgId){
           // console.log(`removed ${ui.tagLabel} from ${TagsImgId}`,ui);
           DBImages.update(TagsImgId,{$pull:{tags: ui.tagLabel}});
+        }
+      };
+      // options['beforeTagAdded'] = function(event, ui) {
+      //   console.log(`beforeTagAdded ui.tagLabel ${instance.data.useHook}`);
+      //   return Meteor.userId() != null;
+      // };
+      options['beforeTagRemoved'] = function(event, ui) {
+        let userId = Meteor.userId();
+        // console.log(`beforeTagRemoved ui.tagLabel ${ui.tagLabel} TagsImgId=${TagsImgId} userId=${userId} useHook=${useHook}`);
+        if(TagsImgId == null) {
+          return true;
+        } else {
+          // only logged in users can remove
+          return userId != null; 
         }
       };
       //
@@ -781,9 +805,11 @@ Tracker.autorun(function () {
 });
 Tracker.autorun(function () {
   var uploaded = Session.get('uploaded');
-  Meteor.call('imageCount', function(err,res){
-    if(!err)
-      Session.set('imageCount', res);
+  Meteor.call('imageCount', TagSearch.get(), function(err,count){
+    if(!err) {
+      Session.set('imageCount', count);
+      Session.set('imageStart',0);
+    }
   });
 });
 Tracker.autorun(function () {
