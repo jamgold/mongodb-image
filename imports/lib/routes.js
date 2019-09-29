@@ -35,7 +35,8 @@ FlowRouter.route('/user/:user', {
 FlowRouter.route('/admin', {
   name: 'admin',
   async action(params) {
-    import 'meteor/jamgold:accounts-admin-ui-bootstrap-3';
+    // import 'meteor/jamgold:accounts-admin-ui-bootstrap-3';
+    import '/imports/client/user_admin';
     this.render(Bootstrap3boilerplate.layout, "admin", {content: "admin"});
   },
 });

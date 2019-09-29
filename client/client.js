@@ -24,6 +24,7 @@ ThumbnailsHandle = null;
 Contributors = new ReactiveVar([]);
 TagSearch = new ReactiveVar([]);
 TagsImgId = null;
+ImageStart = 0;
 
 Template.registerHelper('cssclasses',function(){
   // console.log(`cssclasses ${this.cssclasses}`);
@@ -233,8 +234,23 @@ Template.upload.events({
 Template.thumbnails.onCreated(function() {
   var template = this;
   template.tags = new ReactiveVar(null);
+  template.pages = new ReactiveVar([]);
   Meteor.call('tags',(err,res) => {
     if(err) console.error(err);else template.tags.set(res);
+  });
+
+  template.autorun(function(){
+    // console.log(`${template.view.name}.onCreated.autorun ImageStart=${ImageStart}`);
+    var counter = Session.get('imageCount');
+    var pages = [];
+    var page = 1;
+    var number = ImagesPerPage;
+    for (var i = 0; i < counter; i += number) {
+      var c = i == ImageStart ? 'active' : '';
+      pages.push(`<li class="${c}" data-start="${i}"><a data-start="${i}">${page}</a></li>`);
+      page++;
+    }
+    template.pages.set(pages);
   })
 });
 Template.thumbnails.onRendered(function(){
@@ -249,19 +265,8 @@ Template.thumbnails.onDestroyed(function() {
 });
 Template.thumbnails.helpers({
   pages() {
-    var pages = [];
-    var page = 1;
-    var number = ImagesPerPage;//+1;
     var template = Template.instance();
-    var current = Session.get('imageStart');
-    var counter = Session.get('imageCount');
-    for(var i=0;i<counter;i+=number)
-    {
-      var c = i == current ? 'page btn btn-success' : 'page btn btn-default';
-      pages.push('<a class="'+c+'" start="'+i+'">'+page+'</a>');
-      page++;
-    }
-    return pages;
+    return template.pages.get();
   },
   // helper to get all the thumbnails only called ONCE, even when the subscription for DBImages changes
   images() {
@@ -289,14 +294,13 @@ Template.thumbnails.helpers({
   }
 });
 Template.thumbnails.events({
-  'click a.page'(e,t) {
-    var a = $(e.target);
-    var s = parseInt(a.attr('start'));
-    // stopping the handle will remove all the images
-    // t.handle.stop();
-    Session.set('imageStart', s);
+  'click .pagination li a'(e,t) {
+    t.$('.pagination li').removeClass('active');
+    ImageStart = parseInt(e.currentTarget.dataset.start);
+    e.currentTarget.parentNode.classList.add('active');
+    Session.set('imageStart', ImageStart);
   },
-  'click button.uploadModal'(e,t) {
+  'click .uploadModal'(e,t) {
     Bootstrap3boilerplate.Modal.show();
   },
 });
@@ -555,50 +559,120 @@ Template.admin.helpers({
 Template.userImages.onCreated(function(){
   const template = this;
   template.handle = null;
+  template.start = new ReactiveVar(0);
+  template.user = new ReactiveVar(FlowRouter.current().params.user);
+  template.pages = new ReactiveVar([]);
+  template.contributors = {};
+
+  if(ThumbnailsHandle) ThumbnailsHandle.stop();
+
+  template.autorun(function(){
+    var contributors = Contributors.get();
+    if (contributors) {
+      contributors.forEach(function (c) {
+        template.contributors[c.id] = c;
+      })
+    }
+    // console.log(template.contributors);
+  });
 
   template.autorun(function(){
     FlowRouter.watchPathChange();
-    template.user = FlowRouter.current().params.user;
-    template.handle = template.subscribe('user_images', template.user, function(){
-      console.log(`subscribed to ${DBImages.find({user:template.user}).fetch().length} images for ${template.user}`);
-    });
-    Meteor.call('user_name', template.user, function(err,res){
-      if(!err) 
-      {
+    template.user.set(FlowRouter.current().params.user);
+  });
+  template.autorun(function(){
+    var user = template.user.get();
+    // template.user = FlowRouter.current().params.user;
+    Meteor.call('user_name', user, function (err, res) {
+      if (!err) {
         Session.set('user_name', res.email);
         Session.set('user_banned', res.banned);
       } else console.error(err);
     });
-  })
+
+    var counter = user in template.contributors ? template.contributors[user].count : 0;
+    var pages = [];
+    var page = 1;
+    var number = 18;//ImagesPerPage;
+    if(counter>number){
+      for (var i = 0; i < counter; i += number) {
+        var c = i == ImageStart ? 'active' : '';
+        pages.push(`<li class="${c}" data-start="${i}"><a data-start="${i}">${page}</a></li>`);
+        page++;
+      }
+    }
+    // console.log(`set pages for ${user} / ${counter} => ${pages.length}`);
+    template.pages.set(pages);
+    template.start.set(0);
+  });
+  template.autorun(function(){
+    var user = template.user.get();
+    var start = template.start.get();
+    // console.log(`${template.view.name} running subscribe for ${user}`);
+    if(template.handle) template.handle.stop();
+    template.handle = template.subscribe('user_images', start, user, function(){
+      // console.log(`subscribed to ${DBImages.find({user:user}).count()} images for ${user}`);
+    });
+  });
+});
+Template.userImages.onDestroyed(function(){
+  const instance = this;
+  // console.info(`${instance.view.name}.onDestroyed`);
+  //
+  // restore global subscription
+  //
+  if (ThumbnailsHandle) ThumbnailsHandle.stop();
+  ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'), TagSearch.get(), function () {
+    // console.log(`${DBImages.find().count()} thumbnails subscribed ${ThumbnailsHandle.subscriptionId}`);
+  });
 });
 Template.userImages.helpers({
+  needsPagination(){
+    const instance = Template.instance();
+    const pages = instance.pages.get();
+    return pages.length>0;
+  },
+  pages(){
+    const instance = Template.instance();
+    return instance.pages.get();
+  },
   contributors(){
     return Contributors.get();
   },
-  activeUser: function(c) {
-    return c.id.toString() == Template.instance().user;
+  activeUser(c) {
+    const instance = Template.instance();
+    var user = instance.user.get();
+    // console.log(`activeUser ${c.id} == ${user}`);
+    return c.id.toString() == user;
   },
-  images: function() {
+  images() {
     //
     // do not use subscriptionId since the images might already be 
     // there from the global Meteor.subscription and the publish
     // only adds the new subscriptionId to images not yet in the 
     // publication
     //
-    FlowRouter.watchPathChange();
     var instance = Template.instance();
+    var user = instance.user.get()
     return DBImages.find({
-      user: instance.user,
+      user: user,
     },{
       sort:{created: -1}
     });
   },
-  user: function() {
+  user() {
     var instance = Template.instance();
-    return instance.user;
+    return instance.user.get();
   },
   user_name: function() {
     return Session.get('user_name');
+  },
+});
+Template.userImages.events({
+  'click .pagination li a'(e, template) {
+    template.$('.pagination li').removeClass('active');
+    e.currentTarget.parentNode.classList.add('active');
+    template.start.set(parseInt(e.currentTarget.dataset.start));
   },
 });
 Template.other_user.onCreated(function(){
@@ -800,15 +874,18 @@ Tracker.autorun(function () {
   Template.thumbnails.numberofimages = 0;
   if(ThumbnailsHandle) ThumbnailsHandle.stop();
   ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'), TagSearch.get(),function(){
-    console.log(`${DBImages.find().count()} thumbnails subscribed ${ThumbnailsHandle.subscriptionId}`);
+    // console.log(`${DBImages.find().count()} thumbnails subscribed ${ThumbnailsHandle.subscriptionId}`);
   });
 });
-Tracker.autorun(function () {
+Tracker.autorun(function imageCountAutorun() {
   var uploaded = Session.get('uploaded');
-  Meteor.call('imageCount', TagSearch.get(), function(err,count){
+  var tags = TagSearch.get();
+  // console.info(`imageCountAutorun ${tags}`);
+  Meteor.call('imageCount', tags, function(err,count){
     if(!err) {
       Session.set('imageCount', count);
       Session.set('imageStart',0);
+      ImageStart = 0;
     }
   });
 });

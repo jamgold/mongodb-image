@@ -29,16 +29,18 @@
 			{{>thumbnails_data images=images}}
 		{{/if}}
 	</div>
-	<div>
-		{{#if currentUser}}
-			{{#unless isInRole 'banned'}}
-				<button class="btn btn-success uploadModal">Upload</button>
-			{{/unless}}
-		{{/if}}
-		{{#each page in pages}}
-			{{{page}}}
-		{{/each}}
-	</div>
+	<nav aria-label="Page navigation">
+		<ul class="pagination">
+			{{#if currentUser}}
+				{{#unless isInRole 'banned'}}
+					<li><button style="float:left" class="btn btn-success uploadModal">Upload</button></li>
+				{{/unless}}
+			{{/if}}
+			{{#each page in pages}}
+				{{{page}}}
+			{{/each}}
+		</ul>
+	</nav>
 	{{!instructions}}
 	{{#if isInRole 'moment'}}
 		{{> momentTemplate}}
@@ -52,7 +54,7 @@
 </template>
 
 <template name="thumbnail">
-	<div class="col-lg-2 col-md-6 col-sm-6 col-xs-6 animated off">
+	<div class="col-lg-2 col-md-2 col-sm-6 col-xs-6 animated off">
 		<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
 			<img class="thumbnail {{cssclasses}}" imageid="{{_id}}" src="{{thumbnail}}"/>
 		</a>
@@ -95,7 +97,7 @@
 					</ul>
 				</div>
 				<div class="col-lg-9">
-					<div class="row">
+					<div class="row" style="min-height: 500px">
 						{{#if Template.subscriptionsReady}}
 							{{#each images}}
 								<div class="col-lg-2 col-md-2 col-sm-4">
@@ -111,6 +113,16 @@
 					</div>
 				</div>
 			</div>
+
+		{{#if needsPagination}}
+			<nav aria-label="Page navigation">
+				<ul class="pagination">
+					{{#each page in pages}}
+						{{{page}}}
+					{{/each}}
+				</ul>
+			</nav>
+		{{/if}}
 	{{else}}
 		Must be admin to see this...
 	{{/if}}

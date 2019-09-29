@@ -21,8 +21,11 @@ Meteor.publish('image',function(id) {
   });
 });
 
-Meteor.publish('user_images', function(user){
+Meteor.publish('user_images', function(skip,user){
   var self = this;
+  // check(skip, Integer);
+  // check(user, String);
+  console.log(`user_images for ${user} starting ${skip}`);
   //
   // do not use subscriptionId since the images might already be 
   // there from the global Meteor.subscription and the publish
@@ -33,8 +36,10 @@ Meteor.publish('user_images', function(user){
     user: user
     // thumbnail:{$exists:1}
   },{
-    fields: {src:0}
-    ,sort:{created: -1}
+    limit: 18,
+    skip: skip,
+    fields: {src:0},
+    sort:{created: -1}
   });
 });
 
@@ -99,11 +104,13 @@ Meteor.methods({
     console.time("contributors");
     res.contributors = Meteor.users.find({_id:{$in:distinct('user')}}).fetch().map((u) => {
       var email = u.emails[0].address; //.replace(/[@\.]+/g,' ');
+      var count = DBImages.find({user: u._id}).count();
       r = {
         id: u._id,
         email: email,
         banned: Roles.userIsInRole(u._id, ['banned']), //? '<a class="banning banned">banned</a>' : '<a class="banning ban">ban</a>',
         activeUser: self.userId == u._id,
+        count: count,
       };
       return r;
     });
@@ -198,65 +205,6 @@ Meteor.methods({
       console.timeEnd("updating order");
     }
   }
-});
-//
-// https://github.com/meteorhacks/picker
-//
-Picker.route('/api/json/images', function(params, request, response, next) {
-  switch(request.method) {
-    case 'GET':
-      var json = EJSON.stringify( DBImages.find({thumbnail:{$exists:1}},{
-        fields: {
-          src:0
-        },
-        transform: function(doc) {
-          doc.created = doc.created.toString();
-          doc.transformed = true;
-          return doc;
-        }
-      }).fetch() );
-
-      response.writeHead(200, {
-        'Content-Length': json.length,
-        'Content-Type': 'application/json'
-      });
-
-      response.end(json);
-    break;
-
-    default:
-      console.log(request);
-  }
-});
-Picker.route('/api/json/image/:id', function(params, request, response, next) {
-  // console.log(params);
-  switch(request.method) {
-    case 'GET':
-      // GET /webhooks/stripe
-      var json = EJSON.stringify( DBImages.findOne({_id: params.id}, {
-        transform: function(doc) {
-          doc.created = doc.created.toString();
-          doc.transformed = true;
-          return doc;
-        }
-      }) );
-
-      response.writeHead(200, {
-        'Content-Length': json.length,
-        'Content-Type': 'application/json'
-      });
-
-      response.end(json);
-    break;
-  }
-  // .post(function () {
-  //   // https://github.com/mscdex/busboy
-  //   // https://github.com/EventedMind/iron-router/issues/909
-  //   // https://gist.github.com/cristiandley/9460398
-  // })
-  // .put(function () {
-  //   // PUT /webhooks/stripe
-  // })
 });
 
 Meteor.startup(function(){
