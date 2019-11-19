@@ -1,4 +1,6 @@
 import '/imports/lib/routes.js';
+import '/imports/client/tagit';
+
 import { FlowRouter } from 'meteor/ostrio:flow-router-extra';
 var md5 = require('md5');
 
@@ -6,11 +8,11 @@ if(Meteor.flush == undefined)
 Meteor.flush = function() {
   console.info('Meteor.flush deprecated')
 }
-optionsTest = function(args, options) {
-  options = options || {};
+// optionsTest = function(args, options) {
+//   options = options || {};
 
-  console.info('options', options);
-};
+//   console.info('options', options);
+// };
 
 AcceptedFileTypes = {"image/png":true,"image/jpeg":true,"image/jpg":true,"image/gif":true};
 
@@ -30,6 +32,41 @@ Template.registerHelper('cssclasses',function(){
   // console.log(`cssclasses ${this.cssclasses}`);
   return this.cssclasses ? this.cssclasses : '';
 });
+
+// Template.body.onRendered(function(){
+//   // const template = this;
+//   var dragover = false;
+//   var files = null;
+//   const body = document.getElementsByTagName('body')[0]
+//   console.log('body onRendered', body);
+//   if(body) {
+//     body.addEventListener('dragover', function(e){
+//       e.preventDefault();
+//       if(!dragover){
+//         dragover = true;
+//         body.classList.add('dragover')
+//         // console.log('dragover');
+//       }
+//     });
+//     body.addEventListener('dragleave', function(e){
+//       e.preventDefault();
+//       dragover = false;
+//       body.classList.remove('dragover');
+//       // console.log('dragleave');
+//     });
+//     body.addEventListener('drop', function(e){
+//       e.preventDefault();
+//       e.stopPropagation();
+//       body.classList.remove('dragover');
+//       if (e.dataTransfer) {
+//         files = e.dataTransfer.files;
+//       } else if (e.target) {
+//         files = e.target.files;
+//       }
+//       console.log(files);
+//     });
+//   }
+// });
 
 Template.upload.onCreated(function(){
   var template = this;
@@ -66,8 +103,7 @@ Template.upload.onRendered(function () {
   template.reader = new FileReader();
   template.preview = document.getElementById('images');
 
-  if(!template.preview)
-  {
+  if(!template.preview) {
     template.preview = document.createElement('div');
     template.preview.id = 'preview';
     if(template.debug) {
@@ -78,8 +114,7 @@ Template.upload.onRendered(function () {
     document.body.appendChild(template.preview);
   }
   template.crop_img = document.getElementById('crop_img');
-  if(!template.crop_img)
-  {
+  if(!template.crop_img) {
     template.crop_img = document.createElement('img');
     template.crop_img.id = 'crop_img';
     if(template.debug) {
@@ -91,8 +126,7 @@ Template.upload.onRendered(function () {
   }
 
   template.cropCanvas = document.getElementById('crop_canvas');
-  if(!template.cropCanvas)
-  {
+  if(!template.cropCanvas) {
     template.cropCanvas = document.createElement('canvas');
     template.cropCanvas.id = 'crop_canvas';
     template.cropCanvas.width = 100;
@@ -235,9 +269,9 @@ Template.thumbnails.onCreated(function() {
   var template = this;
   template.tags = new ReactiveVar(null);
   template.pages = new ReactiveVar([]);
-  Meteor.call('tags',(err,res) => {
-    if(err) console.error(err);else template.tags.set(res);
-  });
+  // Meteor.call('tags',(err,res) => {
+  //   if(err) console.error(err);else template.tags.set(res);
+  // });
 
   template.autorun(function(){
     // console.log(`${template.view.name}.onCreated.autorun ImageStart=${ImageStart}`);
@@ -330,24 +364,38 @@ Template.image.onCreated(function(){
     size:0,
     type:'loading',
     src:new ReactiveVar('/circle-loading-animation.gif'),
+    imageId: FlowRouter.current().params.id,
   });
 
   instance.autorun(function(){
+    var userId = Meteor.userId();
     var params = FlowRouter.current().params;
     FlowRouter.watchPathChange();
     instance.subscribe('image', params.id, function(){
       var tagSearch = TagSearch.get();
+      var $myTags = $('#myTags');
       TagsImgId = null;
-      $('#myTags').tagit('removeAll');
+      $myTags.tagit('removeAll');
       instance.cssclasses.set("");
       var img = DBImages.findOne({_id: params.id});
-      if(img)
-      {
+      if(img) {
+        let readOnly = true;
+        if(userId) {
+          if(img.user == userId) {
+            readOnly = false;
+          } else {
+            readOnly = !Roles.userIsInRole(userId, 'admin');
+          }
+        }
+        // this only affects the tags and not readOnly of the input
+        $myTags.tagit({ readOnly: readOnly });//.prop('readOnly', false);
+        $('#myTags li.tagit-new input').prop('disabled', readOnly);
         if(img.tags) {
           img.tags.forEach(function(tag){
             $("#myTags").tagit("createTag", tag);
           })
         }
+        // $myTags.prop('readOnly', readOnly);
         // set the preliminary src to animation and make it reactive
         img.src = new ReactiveVar('/circle-loading-animation.gif');
         instance.img.set(img);
@@ -584,6 +632,7 @@ Template.userImages.onCreated(function(){
     var user = template.user.get();
     // template.user = FlowRouter.current().params.user;
     Meteor.call('user_name', user, function (err, res) {
+      // console.log('user_name', res);
       if (!err) {
         Session.set('user_name', res.email);
         Session.set('user_banned', res.banned);
@@ -676,8 +725,9 @@ Template.userImages.events({
   },
 });
 Template.other_user.onCreated(function(){
-  var self = this;
+  const self = this;
   self.user_name = new ReactiveVar(self.data);
+  // console.log(`${self.view.name}.onCreated`, self.data);
   Meteor.call('user_name', self.data, function(err, user_name){
     if(err) console.error(err);
     else {
@@ -734,120 +784,6 @@ Template.other_user.events({
   }
 });
 
-Template.tagit.onRendered(function(){
-  //
-  // https://github.com/aehlke/tag-it/blob/master/README.markdown
-  //
-  const instance = this;
-  let useHook = true;
-  // console.info(`${instance.view.name}.onRendered`,instance.data);
-
-  let options = {
-    placeholderText: instance.data.title,
-    allowDuplicates: false,
-    allowSpaces: false,
-    caseSensitive: false,
-    readOnly: false,
-    tagLimit: null,
-    singleField: true,
-    fieldName: 'tag',
-    autocomplete: {
-      delay: 0,
-      minLength: 2,
-      autoFocus: true,
-    },
-  };
-  // instance.autorun(function(){
-    let userId = Meteor.userId();
-    // console.log(`${instance.view.name}.autorun ${userId}`);
-    if(instance.data.tags) {
-      //
-      // if template was called with array of tags, use those
-      //
-      options['availableTags'] = instance.data.tags;
-      //
-      // make sure we can only add existing tags
-      //
-      options['beforeTagAdded'] = function(event, ui) {
-        return instance.data.tags.indexOf(ui.tagLabel)>=0;
-      };
-      options['afterTagAdded'] = function(event, ui) {
-        if(useHook) {
-          let tags = TagSearch.get();
-          tags.push(ui.tagLabel);
-          TagSearch.set(tags);
-        }
-      };
-      options['afterTagRemoved'] = function(event, ui) {
-        if(useHook){
-          let tags = TagSearch.get();
-          TagSearch.set(tags.filter((tag) => {return ui.tagLabel != tag}));
-        }
-      };
-    } else {
-      //
-      // add autocomplete from meteor call
-      //
-      options['autocomplete']['source'] = function(request, callback){
-        Meteor.call('tags', request.term, (err,res) => {
-          var options = [];
-          if(err) console.error(err);else options = res.map( (t) => {return {label:t, value: t}});
-          callback( options );
-        });
-      };
-      options['onTagClicked'] = function(event,ui) {
-        var tags = TagSearch.get();
-        tags.push(ui.tagLabel);
-        TagSearch.set(tags);
-        FlowRouter.go('/');
-      };
-      options['afterTagAdded'] = function(event, ui) {
-        if(TagsImgId){
-          // console.log(`added ${ui.tagLabel} to ${TagsImgId}`,ui);
-          DBImages.update(TagsImgId,{$push:{tags: ui.tagLabel}});
-        }
-      };
-      options['afterTagRemoved'] = function(event, ui) {
-        if(TagsImgId){
-          // console.log(`removed ${ui.tagLabel} from ${TagsImgId}`,ui);
-          DBImages.update(TagsImgId,{$pull:{tags: ui.tagLabel}});
-        }
-      };
-      // options['beforeTagAdded'] = function(event, ui) {
-      //   console.log(`beforeTagAdded ui.tagLabel ${instance.data.useHook}`);
-      //   return Meteor.userId() != null;
-      // };
-      options['beforeTagRemoved'] = function(event, ui) {
-        let userId = Meteor.userId();
-        // console.log(`beforeTagRemoved ui.tagLabel ${ui.tagLabel} TagsImgId=${TagsImgId} userId=${userId} useHook=${useHook}`);
-        if(TagsImgId == null) {
-          return true;
-        } else {
-          // only logged in users can remove
-          return userId != null; 
-        }
-      };
-      //
-      // only let logged-in users tag
-      //
-      options['readOnly'] = userId == null;
-    }
-    instance.$("#myTags").tagit( options );
-  // });
-  
-  if(instance.data.tagged) {
-    useHook = false;
-    instance.data.tagged.forEach(function(tag){
-      instance.$("#myTags").tagit("createTag", tag);
-    });
-    useHook = true;
-  }
-
-  let input = instance.findAll('.ui-autocomplete-input');
-  if(input.length>0) {
-    input[0].spellcheck = false;
-  }
-});
 
 Bootstrap3boilerplate.Navbar.left = function() {
   return [
@@ -859,8 +795,11 @@ Bootstrap3boilerplate.Navbar.right = function() {
     {showLoginButtons:true}
   ];
 
-  if(Roles.userIsInRole( Meteor.userId(),'admin'))
-  {
+  let userId = Meteor.userId();
+  if(userId) {
+    right.unshift({text:'My Images', href: `/user/${userId}`});
+  }
+  if(Roles.userIsInRole( Meteor.userId(),'admin')) {
     right.unshift({text:'Admin',href:'/admin'});
   }
   return right;
@@ -884,8 +823,8 @@ Tracker.autorun(function imageCountAutorun() {
   Meteor.call('imageCount', tags, function(err,count){
     if(!err) {
       Session.set('imageCount', count);
-      Session.set('imageStart',0);
-      ImageStart = 0;
+      // Session.set('imageStart',0);
+      // ImageStart = 0;
     }
   });
 });

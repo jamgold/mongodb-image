@@ -10,9 +10,9 @@
 		{{else}}
 			Thumbnails
 		{{/if}}
-		{{#if tags}}
-			{{>tagit title="Enter tags to search" tags=tags tagged=tagged}}
-		{{/if}}
+		{{!if tags}}
+			{{>tagit title="Enter tags to search" tagged=tagged search=true}} {{! tags=tags replaced by callback}}
+		{{!if}}
 	</div>
 
 	{{#if currentUser}}
@@ -75,11 +75,11 @@
 </template>
 
 <template name="userImages">
-	{{#if isInRole 'admin'}}
 		<div class="wall">
 			<h1>All images for {{user_name}}</h1>
 		</div>
 
+		{{#if isInRole 'admin'}}
 			<div class="row">
 				<div class="col-lg-3">
 					<ul>
@@ -113,6 +113,22 @@
 					</div>
 				</div>
 			</div>
+		{{else}}
+			<div class="row" style="min-height: 500px">
+				{{#if Template.subscriptionsReady}}
+					{{#each images}}
+						<div class="col-lg-2 col-md-2 col-sm-4">
+						<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
+							<img class="thumbnail" imageid="{{_id}}" src="{{thumbnail}}"/>
+							<div class="image-size">{{size}}</div>
+						</a>
+						</div>
+					{{/each}}
+				{{else}}
+					<center><img src="/circle-loading-animation.gif"></center>
+				{{/if}}
+			</div>
+		{{/if}}
 
 		{{#if needsPagination}}
 			<nav aria-label="Page navigation">
@@ -123,9 +139,6 @@
 				</ul>
 			</nav>
 		{{/if}}
-	{{else}}
-		Must be admin to see this...
-	{{/if}}
 </template>
 
 <template name="other_user">
@@ -158,7 +171,7 @@
 							<li>{{{user_banned}}} <a href="/user/{{user}}">{{user_name}}</a></li>
 						{{/if}}
 					</ul>
-					{{>tagit title="Enter tags for this image"}}
+					{{>tagit title="Enter tags for this image" img=this}}
 				</div>
 				{{#if commentOut}}
 					<div class="fullscreen {{cssclassesImage}}" style="background-image: url( {{src.get}} )"></div>
@@ -227,11 +240,3 @@ reader.onload = function(e) {
 	<h1>Page not found</h1>
 </template>
 
-<template name="tagit">
-	<ul id="myTags" class="ui-front">
-    <!-- Existing list items will be pre-added to the tags -->
-    {{!each tag in tags}}
-    <!-- <li>{{tag}}</li> -->
-    {{!each}}
-	</ul>
-</template>

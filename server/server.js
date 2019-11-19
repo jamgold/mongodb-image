@@ -25,7 +25,7 @@ Meteor.publish('user_images', function(skip,user){
   var self = this;
   // check(skip, Integer);
   // check(user, String);
-  console.log(`user_images for ${user} starting ${skip}`);
+  // console.log(`user_images for ${user} starting ${skip}`);
   //
   // do not use subscriptionId since the images might already be 
   // there from the global Meteor.subscription and the publish
@@ -145,10 +145,10 @@ Meteor.methods({
     return exists != undefined;
   },
   user_name: function(id) {
-    // console.log('user_name '+this.userId);
+    // console.log(`user_name for ${id} called by ${this.userId}`);
     // if(this.isSimulation) return {};
     // else {
-      if (Roles.userIsInRole(this.userId, ['admin'])) {
+      if (this.userId == id || Roles.userIsInRole(this.userId, ['admin'])) {
         var r = {};
         var user = Meteor.users.findOne({ _id: id });
         if (user) {
