@@ -1,24 +1,73 @@
 import '/imports/lib/routes.js';
+import '/imports/client/tagit';
+
 import { FlowRouter } from 'meteor/ostrio:flow-router-extra';
 var md5 = require('md5');
 
-optionsTest = function(args, options) {
-  options = options || {};
+if(Meteor.flush == undefined)
+Meteor.flush = function() {
+  console.info('Meteor.flush deprecated')
+}
+// optionsTest = function(args, options) {
+//   options = options || {};
 
-  console.info('options', options);
-};
+//   console.info('options', options);
+// };
 
 AcceptedFileTypes = {"image/png":true,"image/jpeg":true,"image/jpg":true,"image/gif":true};
 
 Session.setDefault('uploaded', 0);
 Session.setDefault('imageStart', 0);
 Session.setDefault('imageCount', 0);
-Session.setDefault('loadingSize', 0);
-Session.setDefault('distinct_users',[]);
 Session.setDefault('src', new Date());
 
 ThumbnailsHandle = null;
-AllImageIDs = new ReactiveVar([]);
+// AllImageIDs = new ReactiveVar([]);
+Contributors = new ReactiveVar([]);
+TagSearch = new ReactiveVar([]);
+ImageType = new ReactiveVar('cover');
+TagsImgId = null;
+ImageStart = 0;
+
+Template.registerHelper('cssclasses',function(){
+  // console.log(`cssclasses ${this.cssclasses}`);
+  return this.cssclasses ? this.cssclasses : '';
+});
+
+// Template.body.onRendered(function(){
+//   // const template = this;
+//   var dragover = false;
+//   var files = null;
+//   const body = document.getElementsByTagName('body')[0]
+//   console.log('body onRendered', body);
+//   if(body) {
+//     body.addEventListener('dragover', function(e){
+//       e.preventDefault();
+//       if(!dragover){
+//         dragover = true;
+//         body.classList.add('dragover')
+//         // console.log('dragover');
+//       }
+//     });
+//     body.addEventListener('dragleave', function(e){
+//       e.preventDefault();
+//       dragover = false;
+//       body.classList.remove('dragover');
+//       // console.log('dragleave');
+//     });
+//     body.addEventListener('drop', function(e){
+//       e.preventDefault();
+//       e.stopPropagation();
+//       body.classList.remove('dragover');
+//       if (e.dataTransfer) {
+//         files = e.dataTransfer.files;
+//       } else if (e.target) {
+//         files = e.target.files;
+//       }
+//       console.log(files);
+//     });
+//   }
+// });
 
 Template.upload.onCreated(function(){
   var template = this;
@@ -46,9 +95,6 @@ Template.upload.onRendered(function () {
       template.files = [];
       Session.set('uploaded', Session.get('uploaded')+1);
       Session.set('imageStart', 0);
-      Meteor.call('allImageIds', function(err,images){
-        AllImageIDs.set(images);
-      });
       template.$('h1').removeClass('hidden');
       template.$('img').addClass('hidden');
       Bootstrap3boilerplate.Modal.hide();
@@ -58,8 +104,7 @@ Template.upload.onRendered(function () {
   template.reader = new FileReader();
   template.preview = document.getElementById('images');
 
-  if(!template.preview)
-  {
+  if(!template.preview) {
     template.preview = document.createElement('div');
     template.preview.id = 'preview';
     if(template.debug) {
@@ -70,8 +115,7 @@ Template.upload.onRendered(function () {
     document.body.appendChild(template.preview);
   }
   template.crop_img = document.getElementById('crop_img');
-  if(!template.crop_img)
-  {
+  if(!template.crop_img) {
     template.crop_img = document.createElement('img');
     template.crop_img.id = 'crop_img';
     if(template.debug) {
@@ -83,8 +127,7 @@ Template.upload.onRendered(function () {
   }
 
   template.cropCanvas = document.getElementById('crop_canvas');
-  if(!template.cropCanvas)
-  {
+  if(!template.cropCanvas) {
     template.cropCanvas = document.createElement('canvas');
     template.cropCanvas.id = 'crop_canvas';
     template.cropCanvas.width = 100;
@@ -133,20 +176,22 @@ Template.upload.onRendered(function () {
       // template.cropCanvas.width, template.cropCanvas.height
     );
     console.log(`cropImage cropped into cropCanvas ${template.file.name}`);
+
     DBImages.insert({
        src: cropDataUrl
       ,thumbnail: template.cropCanvas.toDataURL()
       ,size: template.file.size
       ,name: template.file.name
       ,type: template.file.type
-      ,created: new Date()
       ,md5hash: template.md5hash
-      ,user: template.userId
     }, function imageInserted(error,id) {
       if(error) {
         console.error(error);
       } else {        
         console.log(`image ${id} inserted`);
+        // var ids = AllImageIDs.get();
+        // ids.push(id);
+        // AllImageIDs.set(ids);
       }
       template.processNext();
     });
@@ -223,9 +268,39 @@ Template.upload.events({
 
 Template.thumbnails.onCreated(function() {
   var template = this;
+  template.tags = new ReactiveVar(null);
+  template.pages = new ReactiveVar([]);
+  // Meteor.call('tags',(err,res) => {
+  //   if(err) console.error(err);else template.tags.set(res);
+  // });
+
 });
 Template.thumbnails.onRendered(function(){
   var template = this;
+  TagsImgId = null;
+  template.autorun(function () {
+    ImageStart = parseInt(ImageStart);
+    // console.log(`${template.view.name}.onCreated.autorun ImageStart=${ImageStart}`);
+    var counter = Session.get('imageCount');
+    var pages = [];
+    var page = 1;
+    const number = ImagesPerPage;
+    template.$('.pagination li').removeClass('active');
+
+    for (var i = 0; i < counter; i += number) {
+      var c = i == ImageStart ? 'active' : '';
+      // console.log(`${template.view.name}.onCreated.autorun ${i} ${c}`);
+      // pages.push(`<li ${c} data-start='${i}'><a data-start='${i}'>${page}</a></li>`);
+      pages.push({
+        page: page,
+        start: i,
+        class: c
+      })
+      page++;
+    }
+    template.pages.set(pages);
+    template.$(`li[data-start="${ImageStart}"]`).addClass('active');
+  })
 });
 Template.thumbnails.onDestroyed(function() {
   var template = this;
@@ -235,18 +310,8 @@ Template.thumbnails.onDestroyed(function() {
 });
 Template.thumbnails.helpers({
   pages() {
-    var pages = [];
-    var page = 1;
-    var number = ImagesPerPage;//+1;
-    var template = Template.instance();
-    var current = Session.get('imageStart');
-    var counter = Session.get('imageCount');
-    for(var i=0;i<counter;i+=number)
-    {
-      var c = i == current ? 'page btn btn-success' : 'page btn btn-default';
-      pages.push('<a class="'+c+'" start="'+i+'">'+page+'</a>');
-      page++;
-    }
+    const pages = Template.instance().pages.get();
+    // console.log('pages', pages)
     return pages;
   },
   // helper to get all the thumbnails only called ONCE, even when the subscription for DBImages changes
@@ -254,7 +319,7 @@ Template.thumbnails.helpers({
     // console.log('thumbnails helper');
     return DBImages.find({
       thumbnail:{$exists:1},
-      subscriptionId: ThumbnailsHandle.subscriptionId,
+      // subscriptionId: ThumbnailsHandle.subscriptionId,
     },{
       limit:ImagesPerPage,
       sort:{created: -1 }
@@ -267,16 +332,22 @@ Template.thumbnails.helpers({
     var img = DBImages.findOne();
     return img ? img._id : null;
   },
+  tags(){
+    return Template.instance().tags.get();
+  },
+  tagged(){
+    return TagSearch.get();
+  }
 });
 Template.thumbnails.events({
-  'click a.page'(e,t) {
-    var a = $(e.target);
-    var s = parseInt(a.attr('start'));
-    // stopping the handle will remove all the images
-    // t.handle.stop();
-    Session.set('imageStart', s);
+  'click .pagination li a'(e,t) {
+    // console.log('click .pagination li a');
+    t.$('.pagination li').removeClass('active');
+    ImageStart = parseInt(e.currentTarget.dataset.start);
+    e.currentTarget.parentNode.classList.add('active');
+    Session.set('imageStart', ImageStart);
   },
-  'click button.uploadModal'(e,t) {
+  'click .uploadModal'(e,t) {
     Bootstrap3boilerplate.Modal.show();
   },
 });
@@ -286,24 +357,63 @@ Template.thumbnail.onRendered(function(){
   this.$('div.off').removeClass('off');
 });
 Template.thumbnail.onDestroyed(function(){
-  this.$('div.off').addClass('off')
+  //
+  this.$('div.off').addClass('off');
+});
+Template.thumbnail.helpers({
+  // cssclasses(){
+  //   console.log(this);
+  // }
 });
 
 Template.image.onCreated(function(){
-  var self = this;
-  self.autorun(function(){
-    self.img = new ReactiveVar({name:'loading',md5hash:'loading',size:0,type:'loading',src:new ReactiveVar('/circle-loading-animation.gif')});
+  var instance = this;
+  instance.cssclasses = new ReactiveVar('');
+  instance.next = new ReactiveVar(null);
+  instance.prev = new ReactiveVar(null);
+  instance.img = new ReactiveVar({
+    name:'loading',
+    md5hash:'loading',
+    size:0,
+    type:'loading',
+    src:new ReactiveVar('/circle-loading-animation.gif'),
+    imageId: FlowRouter.current().params.id,
+  });
+
+  instance.autorun(function(){
+    var userId = Meteor.userId();
     var params = FlowRouter.current().params;
     FlowRouter.watchPathChange();
-    self.subscribe('image', params.id, function(){
+    instance.subscribe('image', params.id, function(){
+      var tagSearch = TagSearch.get();
+      var $myTags = $('#myTags');
+      TagsImgId = null;
+      $myTags.tagit('removeAll');
+      instance.cssclasses.set("");
       var img = DBImages.findOne({_id: params.id});
-      if(img)
-      {
+      if(img) {
+        let readOnly = true;
+        if(userId) {
+          if(img.user == userId) {
+            readOnly = false;
+          } else {
+            readOnly = !Roles.userIsInRole(userId, 'admin');
+          }
+        }
+        // this only affects the tags and not readOnly of the input
+        $myTags.tagit({ readOnly: readOnly });//.prop('readOnly', false);
+        $('#myTags li.tagit-new input').prop('disabled', readOnly);
+        if(img.tags) {
+          img.tags.forEach(function(tag){
+            $("#myTags").tagit("createTag", tag);
+          })
+        }
+        // $myTags.prop('readOnly', readOnly);
         // set the preliminary src to animation and make it reactive
         img.src = new ReactiveVar('/circle-loading-animation.gif');
-        self.img.set(img);
+        instance.img.set(img);
         // now call method to get src for id
-        Meteor.call('src', params.id, function(err,src){
+        Meteor.call('src', params.id, tagSearch, function(err,res){
           if(err)
           {
             console.log(err);
@@ -311,10 +421,15 @@ Template.image.onCreated(function(){
           else
           {
             // set this routes img src
-            img.src.set(src);
+            // console.log(`prev ${res.prev}, next ${res.next}`);
+            img.src.set(res.src);
+            instance.next.set(res.next);
+            instance.prev.set(res.prev);
+            instance.cssclasses.set(img.cssclasses);
           }
         });
       }
+      TagsImgId = params.id;
     });
   });
 });
@@ -335,9 +450,21 @@ Template.image.onRendered(function() {
   }
 });
 Template.image.helpers({
+  imgId(){
+    return FlowRouter.current().params.id;
+  },
   img: function() {
     var instance = Template.instance();
     return instance.img.get();
+  },
+  cssclassesImage(){
+    var instance = Template.instance();
+    var css = instance.cssclasses.get();
+    var type = ImageType.get();
+    if(type != 'cover'){
+      css+=` ${type}`;
+    }
+    return css;
   },
   md5hash: function() {
     var image = this;
@@ -377,34 +504,73 @@ Template.image.helpers({
   },
   prev: function() {
     var instance = Template.instance();
-    var images = AllImageIDs.get();
-    var img = instance.img.get();
-    if(img && img._id) {
-      var id = img._id;
-      var pos = images.indexOf(id);
-      if(pos>0) {
-        return images[pos-1];
-      } else {
-        return false;
-      }
-    }
+    return instance.prev.get();
+    // var images = AllImageIDs.get();
+    // var img = instance.img.get();
+    // var prev = false;
+    // if(img && img._id) {
+    //   var id = img._id;
+    //   var pos = images.indexOf(id);
+    //   if(pos>0) {
+    //     prev = images[pos-1];
+    //   }
+    //   Meteor.call('prevImage', img.order, (err,res) => {
+    //     if(err) console.error(err);else console.info(`${prev} and ${res}`);
+    //   })
+    // }
+    // return prev;
   },
   next: function() {
     var instance = Template.instance();
-    var images = AllImageIDs.get();
-    var img = instance.img.get();
-    if(img && img._id) {
-      var id = img._id;
-      var pos = images.indexOf(id);
-      if(pos<images.length) {
-        return images[pos+1];
-      } else {
-        return false;
-      }
+    return instance.next.get();
+    // var images = AllImageIDs.get();
+    // var img = instance.img.get();
+    // var next = false;
+    // if(img && img._id) {
+    //   var id = img._id;
+    //   var pos = images.indexOf(id);
+    //   if(pos<images.length) {
+    //     next = images[pos+1];
+    //   }
+    //   Meteor.call('nextImage', img.order, (err,res) => {
+    //     if(err) console.error(err);else console.info(`${next} and ${res}`);
+    //   });
+    // }
+    // return next;
+  },
+  active(c) {
+    // console.log(c,this);
+    if(c == undefined) {
+      return this.cssclasses == undefined || this.cssclasses == "" ? "checked" : "";
+    } else {
+      return this.cssclasses == c ? "checked" : "";
     }
-  }
+  },
+  cover(){
+    var instance = Template.instance();
+    return ImageType.get() == 'cover';
+  },
+  imageType(type) {
+    return ImageType.get() == type ? 'checked' : '';
+  },
 });
 Template.image.events({
+  'hover img'(e,t) {
+    console.log('hover', e.currentTarget)
+  },
+  'change #image-type'(e,t){
+    ImageType.set(e.currentTarget.value);
+  },
+  'change #cssclasses'(e,t){
+    var c = e.currentTarget;
+    var id = c.dataset.imageId;
+    var image = DBImages.findOne(id);
+    var old = image.cssclasses;
+    DBImages.update(id,{$set:{cssclasses: c.value}},function(r){
+      // t.$('.fullscreen').removeClass(old).addClass(c.value);
+      t.cssclasses.set(c.value);
+    })
+  },
   'click a.delete': function(e,t) {
     if(confirm('Really Delete?'))
     {
@@ -467,62 +633,129 @@ Template.admin.helpers({
 });
 
 Template.userImages.onCreated(function(){
-  var template = this;
+  const template = this;
   template.handle = null;
+  template.start = new ReactiveVar(0);
+  template.user = new ReactiveVar(FlowRouter.current().params.user);
+  template.pages = new ReactiveVar([]);
+  template.contributors = {};
+
+  if(ThumbnailsHandle) ThumbnailsHandle.stop();
+
+  template.autorun(function(){
+    var contributors = Contributors.get();
+    if (contributors) {
+      contributors.forEach(function (c) {
+        template.contributors[c.id] = c;
+      })
+    }
+    // console.log(template.contributors);
+  });
+
   template.autorun(function(){
     FlowRouter.watchPathChange();
-    template.user = FlowRouter.current().params.user;
-    Session.set('loadingSize', template.user);
-    template.handle = template.subscribe('user_images', template.user, function(){
-      console.log('subscribed to images for '+template.user);
-    });
-    Meteor.call('user_name', template.user, function(err,res){
-      if(!err) 
-      {
+    template.user.set(FlowRouter.current().params.user);
+  });
+  template.autorun(function(){
+    var user = template.user.get();
+    // template.user = FlowRouter.current().params.user;
+    Meteor.call('user_name', user, function (err, res) {
+      // console.log('user_name', res);
+      if (!err) {
         Session.set('user_name', res.email);
         Session.set('user_banned', res.banned);
       } else console.error(err);
     });
-  })
+
+    var counter = user in template.contributors ? template.contributors[user].count : 0;
+    var pages = [];
+    var page = 1;
+    var number = 18;//ImagesPerPage;
+    if(counter>number){
+      for (var i = 0; i < counter; i += number) {
+        var c = i == ImageStart ? 'active' : '';
+        pages.push(`<li class="${c}" data-start="${i}"><a data-start="${i}">${page}</a></li>`);
+        page++;
+      }
+    }
+    // console.log(`set pages for ${user} / ${counter} => ${pages.length}`);
+    template.pages.set(pages);
+    template.start.set(0);
+  });
+  template.autorun(function(){
+    var user = template.user.get();
+    var start = template.start.get();
+    // console.log(`${template.view.name} running subscribe for ${user}`);
+    if(template.handle) template.handle.stop();
+    template.handle = template.subscribe('user_images', start, user, function(){
+      // console.log(`subscribed to ${DBImages.find({user:user}).count()} images for ${user}`);
+    });
+  });
+});
+Template.userImages.onDestroyed(function(){
+  const instance = this;
+  // console.info(`${instance.view.name}.onDestroyed`);
+  //
+  // restore global subscription
+  //
+  if (ThumbnailsHandle) ThumbnailsHandle.stop();
+  ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'), TagSearch.get(), function () {
+    // console.log(`${DBImages.find().count()} thumbnails subscribed ${ThumbnailsHandle.subscriptionId}`);
+  });
 });
 Template.userImages.helpers({
-  distinct_users: function () {
-    FlowRouter.watchPathChange();
-
-    DBImages.distinct('user',function(err, result){
-      Session.set('distinct_users', result);
-    });
-    return Session.get('distinct_users');
+  needsPagination(){
+    const instance = Template.instance();
+    const pages = instance.pages.get();
+    return pages.length>0;
   },
-  activeUser: function() {
-    return this.toString() == Session.get('loadingSize');
+  pages(){
+    const instance = Template.instance();
+    return instance.pages.get();
   },
-  images: function() {
+  contributors(){
+    return Contributors.get();
+  },
+  activeUser(c) {
+    const instance = Template.instance();
+    var user = instance.user.get();
+    // console.log(`activeUser ${c.id} == ${user}`);
+    return c.id.toString() == user;
+  },
+  images() {
     //
     // do not use subscriptionId since the images might already be 
     // there from the global Meteor.subscription and the publish
     // only adds the new subscriptionId to images not yet in the 
     // publication
     //
-    FlowRouter.watchPathChange();
     var instance = Template.instance();
+    var user = instance.user.get()
     return DBImages.find({
-      user: instance.user,
+      user: user,
     },{
       sort:{created: -1}
     });
   },
-  user: function() {
+  user() {
     var instance = Template.instance();
-    return instance.user;
+    return instance.user.get();
   },
   user_name: function() {
     return Session.get('user_name');
   },
 });
+Template.userImages.events({
+  'click .pagination li a'(e, template) {
+    template.$('.pagination li').removeClass('active');
+    e.currentTarget.parentNode.classList.add('active');
+    template.start.set(parseInt(e.currentTarget.dataset.start));
+  },
+});
 Template.other_user.onCreated(function(){
-  var self = this;
+  const self = this;
   self.user_name = new ReactiveVar(self.data);
+  // console.log(`${self.view.name}.onCreated`, self.data);
   Meteor.call('user_name', self.data, function(err, user_name){
     if(err) console.error(err);
     else {
@@ -536,6 +769,49 @@ Template.other_user.helpers({
     return self.user_name.get();
   }
 });
+Template.other_user.events({
+  'click .banning'(event, instance){
+    let user = event.currentTarget.dataset.contributor;
+    if(event.currentTarget.classList.contains('ban')){
+      // console.log(`ban ${user}`);
+      if(confirm('Really ban this user?'))
+      {
+        Meteor.call('ban', user, true, function(err,res){
+          if(err)
+          {
+            console.log(err)
+          }
+          else
+          {
+            event.currentTarget.classList.remove('ban');
+            event.currentTarget.classList.add('banned');
+            event.currentTarget.innerHTML = res;
+          }
+          // console.info(e.target.className,err,res);
+        });
+      }
+    } else {
+      // console.log(`unban ${user}`);
+      if(confirm('Really unban this user?'))
+      {
+        Meteor.call('ban', user, false, function(err,res){
+          if(err)
+          {
+            console.log(err)
+          }
+          else
+          {
+            event.currentTarget.classList.remove('banned');
+            event.currentTarget.classList.add('ban');
+            event.currentTarget.innerHTML = res;
+          }
+          // console.info(e.target.className,err,res);
+        });
+      }
+    }
+  }
+});
+
 
 Bootstrap3boilerplate.Navbar.left = function() {
   return [
@@ -547,28 +823,37 @@ Bootstrap3boilerplate.Navbar.right = function() {
     {showLoginButtons:true}
   ];
 
-  if(Roles.userIsInRole( Meteor.userId(),'admin'))
-  {
+  let userId = Meteor.userId();
+  if(userId) {
+    right.unshift({text:'My Images', href: `/user/${userId}`});
+  }
+  if(Roles.userIsInRole( Meteor.userId(),'admin')) {
     right.unshift({text:'Admin',href:'/admin'});
   }
   return right;
 };
 Bootstrap3boilerplate.init();
-Bootstrap3boilerplate.Footer.show.set(true);
+Bootstrap3boilerplate.Footer.show.set(false);
 Bootstrap3boilerplate.Modal.title.set('Upload Images');
 Bootstrap3boilerplate.Modal.dynamicTemplate.set('upload');
 
 Tracker.autorun(function () {
   Template.thumbnails.numberofimages = 0;
-  ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'),function(){
-    console.log('thumbnails subscribed '+ThumbnailsHandle.subscriptionId);
+  if(ThumbnailsHandle) ThumbnailsHandle.stop();
+  ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'), TagSearch.get(),function(){
+    // console.log(`${DBImages.find().count()} thumbnails subscribed ${ThumbnailsHandle.subscriptionId}`);
   });
 });
-Tracker.autorun(function () {
+Tracker.autorun(function imageCountAutorun() {
   var uploaded = Session.get('uploaded');
-  Meteor.call('imageCount', function(err,res){
-    if(!err)
-      Session.set('imageCount', res);
+  var tags = TagSearch.get();
+  // console.info(`imageCountAutorun ${tags}`);
+  Meteor.call('imageCount', tags, function(err,count){
+    if(!err) {
+      Session.set('imageCount', count);
+      // Session.set('imageStart',0);
+      // ImageStart = 0;
+    }
   });
 });
 Tracker.autorun(function () {
@@ -577,8 +862,13 @@ Tracker.autorun(function () {
 });
 
 Meteor.startup(function(){
-  Meteor.call('allImageIds', function(err,images){
-    AllImageIDs.set(images);
+  // console.log('Meteor.startup');
+  Meteor.call('contributors', function(err,res){
+    if(err) {
+      console.error(err);
+    } else {
+      // AllImageIDs.set(res.images);
+      Contributors.set(res.contributors);
+    }
   });
 });
-

@@ -1,30 +1,17 @@
-Meteor.publish('thumbnails', function(imageStart){
+Meteor.publish('thumbnails', function(imageStart, tags){
   var self = this;
+  let query = {thumbnail:{$exists:1}};
+  if(tags !== undefined && tags.length>0) query['tags'] = {$all: tags};
   imageStart = imageStart == undefined ? 0 : imageStart;
   // console.info('thumbnails start:'+ imageStart+' subscriptionId:'+self._subscriptionId);
-  var handle = DBImages.find({
-    thumbnail:{$exists:1}
-  },{
+  var cursor = DBImages.find(query,{
     fields: {src:0}
     ,sort:{created: -1}
     ,skip: imageStart
     ,limit: ImagesPerPage
-  }).observeChanges({
-    added: function(id, img) {
-      img.subscriptionId = self._subscriptionId;
-      self.added('dbimages', id, img);
-    },
-    removed: function(id) {
-      self.removed('dbimages', id);
-    },
-    changed: function(id, fields) {
-      self.changed('dbimages', id, fields);
-    }
-  });;
-  self.ready();
-  self.onStop(function(){
-    handle.stop();
-  })
+  });
+  // console.log(`${cursor.fetch().length} thumbnails published with limit ${ImagesPerPage}`);
+  return cursor;
 });
 
 Meteor.publish('image',function(id) {
@@ -34,8 +21,11 @@ Meteor.publish('image',function(id) {
   });
 });
 
-Meteor.publish('user_images', function(user){
+Meteor.publish('user_images', function(skip,user){
   var self = this;
+  // check(skip, Integer);
+  // check(user, String);
+  // console.log(`user_images for ${user} starting ${skip}`);
   //
   // do not use subscriptionId since the images might already be 
   // there from the global Meteor.subscription and the publish
@@ -46,14 +36,23 @@ Meteor.publish('user_images', function(user){
     user: user
     // thumbnail:{$exists:1}
   },{
-    fields: {src:0}
-    ,sort:{created: -1}
+    limit: 18,
+    skip: skip,
+    fields: {src:0},
+    sort:{created: -1}
   });
+});
+
+Meteor.publish(null, function(){
+  if(this.userId) {
+    return Meteor.roleAssignment.find({'user._id': this.userId});
+  } else {
+    return null;
+  }
 });
 
 DBImages.allow({
   insert: function(userId, doc) {
-    doc.user = userId;
     return userId;
   },
   update: function(userId, doc, fieldNames, modifier) {
@@ -64,35 +63,68 @@ DBImages.allow({
   }
 });
 
-Meteor.startup(function(){
-  DBImages._ensureIndex('created');
+DBImages.before.insert(function(userId, doc) {
+  doc.user = userId;
+  doc.order = Meteor.call('maxOrder') + 1;
+  doc.created = new Date();
+  console.log(`DBImages inserting with order ${doc.order}`);
 
-  var assets = EJSON.parse(Assets.getText('admin.json'));
-  var admin_user = assets.admin_user;
-
-  var admin = Meteor.users.findOne({username: admin_user.username});
-
-  if(admin) {
-    Roles.addUsersToRoles(admin._id, ['admin']);
-  } else {
-    id = Accounts.createUser(admin_user);
-    Roles.addUsersToRoles(id, ['admin']);
-  }
 });
 
-
 Meteor.methods({
-  allImageIds: function() {
-    var images = [];
-    DBImages.find({
-          thumbnail:{$exists:1},
-        },{
-          sort:{created: -1 }
-        }
-    ).fetch().forEach(function(image){
-      images.push(image._id);
+  tags(search){
+    const raw = DBImages.rawCollection();
+    const distinct = Meteor.wrapAsync(raw.distinct, raw);
+
+    let tags = distinct('tags');
+    return search == undefined ? tags : tags.filter((tag) => {return tag.includes(search)})
+  },
+  maxOrder(){
+    let images = DBImages.find({order:{$exists:1}},{sort:{order:-1},limit:1}).fetch()
+    if(images.length>0) return images[0].order;else return DBImages.find().count()+10;
+  },
+  nextImage(order, tags){
+    let images = tags !== undefined && tags.length>0
+      ? DBImages.find({order:{$lt:order},tags:{$all:tags}},{sort:{order:-1},limit:1}).fetch()
+      : DBImages.find({order:{$lt:order}},{sort:{order:-1},limit:1}).fetch()
+    ;
+    // console.log(`nextImage ${order} ${images.length}`, tags);
+    if(images.length>0) return images[0]._id;else return null;
+  },
+  prevImage(order, tags){
+    let images = tags !== undefined && tags.length>0
+      ? DBImages.find({order:{$gt:order},tags:{$all:tags}},{sort:{order:1},limit:1}).fetch()
+      : DBImages.find({order:{$gt:order}},{sort:{order:1},limit:1}).fetch()
+    ;
+    // console.log(`prevImage ${order} ${images.length}`, tags);
+    if(images.length>0) return images[0]._id;else return null;
+  },
+  contributors: function() {
+    const self = this;
+    var res = {images:[],contributors:[],count: DBImages.find({thumbnail:{$exists:1}}).count()};
+    const raw = DBImages.rawCollection();
+    const distinct = Meteor.wrapAsync(raw.distinct, raw);
+
+    // console.time("allImageIds");
+    // res.images = DBImages.find({thumbnail:{$exists:1}, },{sort:{created: -1 } } ).fetch().map((image) => {return image._id;});
+    // console.timeEnd("allImageIds");
+
+    console.time("contributors");
+    res.contributors = Meteor.users.find({_id:{$in:distinct('user')}}).fetch().map((u) => {
+      var email = u.emails[0].address; //.replace(/[@\.]+/g,' ');
+      var count = DBImages.find({user: u._id}).count();
+      r = {
+        id: u._id,
+        email: email,
+        banned: Roles.userIsInRole(u._id, ['banned']), //? '<a class="banning banned">banned</a>' : '<a class="banning ban">ban</a>',
+        activeUser: self.userId == u._id,
+        count: count,
+      };
+      return r;
     });
-    return images;
+    console.timeEnd("contributors");
+
+    return res;
   },
   createPageFromTemplates: function(pageTemplates) {
     if (this.isSimulation) {
@@ -110,18 +142,21 @@ Meteor.methods({
       }
     }
   },
-  imageCount: function() {
-    return DBImages.find().count();
+  imageCount: function(tags) {
+    let query = { thumbnail: { $exists: 1 } };
+    if (tags !== undefined && tags.length > 0) query['tags'] = { $all: tags };
+
+    return DBImages.find(query).count();
   },
   imageExists: function(md5hash) {
     var exists = DBImages.findOne({ md5hash: md5hash });
     return exists != undefined;
   },
   user_name: function(id) {
-    // console.log('user_name '+this.userId);
+    // console.log(`user_name for ${id} called by ${this.userId}`);
     // if(this.isSimulation) return {};
     // else {
-      if (Roles.userIsInRole(this.userId, ['admin'])) {
+      if (this.userId == id || Roles.userIsInRole(this.userId, ['admin'])) {
         var r = {};
         var user = Meteor.users.findOne({ _id: id });
         if (user) {
@@ -159,67 +194,44 @@ Meteor.methods({
       return 'only admins can ban users';
     }
   },
-  src: function(id) {
+  src: function(id, tagSearch) {
     var img = DBImages.findOne({ _id: id });
-    return img ? img.src : '';
-  }
-});
-//
-// https://github.com/meteorhacks/picker
-//
-Picker.route('/api/json/images', function(params, request, response, next) {
-  switch(request.method) {
-    case 'GET':
-      var json = EJSON.stringify( DBImages.find({thumbnail:{$exists:1}},{
-        fields: {
-          src:0
-        },
-        transform: function(doc) {
-          doc.created = doc.created.toString();
-          doc.transformed = true;
-          return doc;
-        }
-      }).fetch() );
-
-      response.writeHead(200, {
-        'Content-Length': json.length,
-        'Content-Type': 'application/json'
+    var res = {src: img ? img.src : '', prev:null,next:null};
+    if(img){
+      res.prev = Meteor.call('prevImage', img.order, tagSearch);
+      res.next = Meteor.call('nextImage', img.order, tagSearch);
+    }
+    return res;
+  },
+  reorder(startup){
+    if (Roles.userIsInRole(this.userId, ['admin']) || startup == 'startup') {
+      let order = 1;
+      console.time("updating order");
+      DBImages.find({},{sort:{created:1}}).forEach((image) => {
+        DBImages.update(image._id,{$set:{order: order++}});
       });
-
-      response.end(json);
-    break;
-
-    default:
-      console.log(request);
+      console.timeEnd("updating order");
+    }
   }
 });
-Picker.route('/api/json/image/:id', function(params, request, response, next) {
-  // console.log(params);
-  switch(request.method) {
-    case 'GET':
-      // GET /webhooks/stripe
-      var json = EJSON.stringify( DBImages.findOne({_id: params.id}, {
-        transform: function(doc) {
-          doc.created = doc.created.toString();
-          doc.transformed = true;
-          return doc;
-        }
-      }) );
 
-      response.writeHead(200, {
-        'Content-Length': json.length,
-        'Content-Type': 'application/json'
-      });
+Meteor.startup(function(){
+  DBImages._ensureIndex('created');
 
-      response.end(json);
-    break;
+  var assets = EJSON.parse(Assets.getText('admin.json'));
+  var admin_user = assets.admin_user;
+  var admin = Meteor.users.findOne({username: admin_user.username});
+  if(admin) {
+    Roles.addUsersToRoles(admin._id, ['admin']);
+  } else {
+    id = Accounts.createUser(admin_user);
+    Roles.addUsersToRoles(id, ['admin']);
   }
-  // .post(function () {
-  //   // https://github.com/mscdex/busboy
-  //   // https://github.com/EventedMind/iron-router/issues/909
-  //   // https://gist.github.com/cristiandley/9460398
-  // })
-  // .put(function () {
-  //   // PUT /webhooks/stripe
-  // })
+  if(DBImages.findOne({order:{$exists:0}})) {
+    Meteor.call('reorder','startup')
+  }
+  // var raw = DBImages.rawCollection();
+  // var distinct = Meteor.wrapAsync(raw.distinct, raw);
+  // console.log(distinct('user'));
 });
+
