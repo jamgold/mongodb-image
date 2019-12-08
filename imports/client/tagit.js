@@ -60,12 +60,16 @@ Template.tagit.onRendered(function () {
       if (useHook) {
         let tags = TagSearch.get();
         tags.push(ui.tagLabel);
+        ImageStart = 0;
+        Session.set('imageStart', 0);
         TagSearch.set(tags);
       }
     };
     options['afterTagRemoved'] = function (event, ui) {
       if (useHook) {
         let tags = TagSearch.get();
+        ImageStart = 0;
+        Session.set('imageStart', 0);
         TagSearch.set(tags.filter((tag) => { return ui.tagLabel != tag }));
       }
     };

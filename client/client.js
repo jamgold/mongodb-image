@@ -25,6 +25,7 @@ ThumbnailsHandle = null;
 // AllImageIDs = new ReactiveVar([]);
 Contributors = new ReactiveVar([]);
 TagSearch = new ReactiveVar([]);
+ImageType = new ReactiveVar('cover');
 TagsImgId = null;
 ImageStart = 0;
 
@@ -273,23 +274,33 @@ Template.thumbnails.onCreated(function() {
   //   if(err) console.error(err);else template.tags.set(res);
   // });
 
-  template.autorun(function(){
-    // console.log(`${template.view.name}.onCreated.autorun ImageStart=${ImageStart}`);
-    var counter = Session.get('imageCount');
-    var pages = [];
-    var page = 1;
-    var number = ImagesPerPage;
-    for (var i = 0; i < counter; i += number) {
-      var c = i == ImageStart ? 'active' : '';
-      pages.push(`<li class="${c}" data-start="${i}"><a data-start="${i}">${page}</a></li>`);
-      page++;
-    }
-    template.pages.set(pages);
-  })
 });
 Template.thumbnails.onRendered(function(){
   var template = this;
   TagsImgId = null;
+  template.autorun(function () {
+    ImageStart = parseInt(ImageStart);
+    // console.log(`${template.view.name}.onCreated.autorun ImageStart=${ImageStart}`);
+    var counter = Session.get('imageCount');
+    var pages = [];
+    var page = 1;
+    const number = ImagesPerPage;
+    template.$('.pagination li').removeClass('active');
+
+    for (var i = 0; i < counter; i += number) {
+      var c = i == ImageStart ? 'active' : '';
+      // console.log(`${template.view.name}.onCreated.autorun ${i} ${c}`);
+      // pages.push(`<li ${c} data-start='${i}'><a data-start='${i}'>${page}</a></li>`);
+      pages.push({
+        page: page,
+        start: i,
+        class: c
+      })
+      page++;
+    }
+    template.pages.set(pages);
+    template.$(`li[data-start="${ImageStart}"]`).addClass('active');
+  })
 });
 Template.thumbnails.onDestroyed(function() {
   var template = this;
@@ -299,8 +310,9 @@ Template.thumbnails.onDestroyed(function() {
 });
 Template.thumbnails.helpers({
   pages() {
-    var template = Template.instance();
-    return template.pages.get();
+    const pages = Template.instance().pages.get();
+    // console.log('pages', pages)
+    return pages;
   },
   // helper to get all the thumbnails only called ONCE, even when the subscription for DBImages changes
   images() {
@@ -329,6 +341,7 @@ Template.thumbnails.helpers({
 });
 Template.thumbnails.events({
   'click .pagination li a'(e,t) {
+    // console.log('click .pagination li a');
     t.$('.pagination li').removeClass('active');
     ImageStart = parseInt(e.currentTarget.dataset.start);
     e.currentTarget.parentNode.classList.add('active');
@@ -446,7 +459,12 @@ Template.image.helpers({
   },
   cssclassesImage(){
     var instance = Template.instance();
-    return instance.cssclasses.get();    
+    var css = instance.cssclasses.get();
+    var type = ImageType.get();
+    if(type != 'cover'){
+      css+=` ${type}`;
+    }
+    return css;
   },
   md5hash: function() {
     var image = this;
@@ -528,11 +546,21 @@ Template.image.helpers({
       return this.cssclasses == c ? "checked" : "";
     }
   },
-  commentOut(){
-    return true;
-  }
+  cover(){
+    var instance = Template.instance();
+    return ImageType.get() == 'cover';
+  },
+  imageType(type) {
+    return ImageType.get() == type ? 'checked' : '';
+  },
 });
 Template.image.events({
+  'hover img'(e,t) {
+    console.log('hover', e.currentTarget)
+  },
+  'change #image-type'(e,t){
+    ImageType.set(e.currentTarget.value);
+  },
   'change #cssclasses'(e,t){
     var c = e.currentTarget;
     var id = c.dataset.imageId;
@@ -834,7 +862,7 @@ Tracker.autorun(function () {
 });
 
 Meteor.startup(function(){
-  console.log('Meteor.startup');
+  // console.log('Meteor.startup');
   Meteor.call('contributors', function(err,res){
     if(err) {
       console.error(err);

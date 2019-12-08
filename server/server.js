@@ -43,6 +43,14 @@ Meteor.publish('user_images', function(skip,user){
   });
 });
 
+Meteor.publish(null, function(){
+  if(this.userId) {
+    return Meteor.roleAssignment.find({'user._id': this.userId});
+  } else {
+    return null;
+  }
+});
+
 DBImages.allow({
   insert: function(userId, doc) {
     return userId;
