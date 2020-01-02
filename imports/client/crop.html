@@ -1,0 +1,24 @@
+<template name='crop'>
+  <table width=100%>
+    <thead>
+      <tr align=center>
+        <th width="80%">Original</th>
+        <th>Cropped</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr valign=top align=center>
+        <td>
+          <img id="croppie" src="/circle-loading-animation.gif" />
+        </td>
+        <td>
+          <img id="cropped">
+        </td>
+      </tr>
+    </tbody>
+  </table>
+  <div class="image buttons">
+      <button class="btn btn-success result">Save</button>
+      <a href="/image/{{id}}" class="btn btn-default">Back</a>
+  </div>
+</template>

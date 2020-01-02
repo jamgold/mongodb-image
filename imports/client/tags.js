@@ -1,10 +1,10 @@
-import './tagit.html';
-
-Template.tagit.onCreated(function () {
+import './tags.html';
+import './tagit';
+Template.tags.onCreated(function () {
   const instance = this;
   // console.log(`${instance.view.name}.onCreated`, instance.data);
 });
-Template.tagit.onRendered(function () {
+Template.tags.onRendered(function () {
   //
   // https://github.com/aehlke/tag-it/blob/master/README.markdown
   //
@@ -21,24 +21,24 @@ Template.tagit.onRendered(function () {
     tagLimit: null,
     singleField: true,
     fieldName: 'tag',
+    // defaultClasses: 'bootstrap label label-primary tagit-choice ui-corner-all',
+    defaultClasses: 'bootstrap badge badge-primary tagit-choice ui-corner-all',
+    existingEffect: 'shake',
     autocomplete: {
       delay: 0,
       minLength: 2,
-      autoFocus: true,
+      // autoFocus: true,
+      source(request, callback) {
+        Meteor.call('tags', request.term, (err, res) => {
+          var options = [];
+          if (err) console.error(err); else options = res.map((t) => { return { label: t, value: t } });
+          callback(options);
+        });
+      }
     },
   };
 
-  let userId = Meteor.userId();
-  //
-  // add autocomplete from meteor call
-  //
-  options['autocomplete']['source'] = function (request, callback) {
-    Meteor.call('tags', request.term, (err, res) => {
-      var options = [];
-      if (err) console.error(err); else options = res.map((t) => { return { label: t, value: t } });
-      callback(options);
-    });
-  };
+  const userId = Meteor.userId();
 
   // console.log(`${instance.view.name}.autorun ${userId}`);
   //

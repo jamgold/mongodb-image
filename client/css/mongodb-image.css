@@ -1,6 +1,21 @@
 /* CSS declarations go here */
+body.bootstrap {
+	margin-top: 4em;
+}
+.ui-menu {
+	z-index: 101;
+}
+#myTags, #private {
+	font-size: 100%;
+}
+#private {
+	z-index: 0;
+}
 .thumbnails {
 	min-height: 550px;
+}
+.thumbnails div {
+	height: 100%;
 }
 .thumbnail {
 	width: 100%;
@@ -104,6 +119,11 @@ div.image.buttons:hover, div.image.type:hover {
 .starter-template {
 	/*position: relative;*/
 }
+#imageInfo {
+	width: 24em;
+	position: absolute;
+	z-index: 10;
+}
 .image-info {
 	background-color: white;
 	display: inline-block;
@@ -129,22 +149,45 @@ a.carousel {
 	color: red;
 	font-size: 250%;
 	z-index: 1000;
+	position: fixed;
 }
 a.carousel.next {
-	position: absolute;
 	right:5px;
 	top: 50%;
 }
 a.carousel.prev {
-	position: absolute;
 	left:5px;
 	top: 50%;
 }
-#myTags {
-	font-size: 12px;
+
+.image-badge {
+	position: absolute;
+	right:10px;
+	text-align: center;
+	color:white;
+	/* opacity: .5; */
+	z-index: 1;
+	font-size: 10px;
 }
-.ui-menu .ui-menu-item {
-	clear: both;
+.private-image {
+	top:10px;
+	border-radius: 5px;
+	background:red;
+	padding:1px 5px;
+}
+.missing-tags {
+	bottom: 10px;
+	background:red;
+	border-radius: 5px;
+	padding:1px 5px;
+}
+.present-tags {
+	bottom: 10px;
+}
+.present-tags span {
+	background: green;
+	padding:1px 5px;
+	border-radius: 5px;
 }
 
 @media (max-device-width : 440px) 
@@ -156,6 +199,7 @@ a.carousel.prev {
 	.modal-content {
 		width: 100%;
 	}
+	/*
 	#login-dropdown-list .dropdown-menu {
 		font-size: 1em;
 		min-width: 75vw;
@@ -164,29 +208,14 @@ a.carousel.prev {
 		font-size: inherit;
 		height: inherit;
 	}
+	*/
 	.navbar-default {
 		font-size: 3em;
 	}
 	.pagination, .well {
 		font-size: 3em;
 	}
-	#myTags {
-		font-size:1em;
-	}
-	#myTags li {
-		font-size: 80%;
-	}
-	#myTags .tagit-choice a.tagit-close {
-		right: -0.5em;
-	}
-	#myTags .tagit-choice a.tagit-close .text-icon {
-		display: block;
-		color: red;
-		font-size:2em;
-	}
-	#myTags .tagit-choice a.tagit-close .ui-icon {
-		display: none;
-	}
+	
 	.navbar-header {
 		max-width: 50%;
 	}

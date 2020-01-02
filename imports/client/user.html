@@ -1,0 +1,106 @@
+
+<template name="userImages">
+		<div class="wall">
+			<h1>All images for {{user_name}}</h1>
+		</div>
+
+		{{#if isInRole 'admin'}}
+			<div class="row">
+				<div class="col-lg-3">
+					<ul>
+					{{#if contributors.length}}
+						{{#each c in contributors}}
+							{{#if activeUser c}}
+								<li>{{c.email}}</li>
+							{{else}}
+								{{>other_user contributor=c}}
+							{{/if}}
+						{{/each}}
+					{{else}}
+						<li>Loading ...</li>
+					{{/if}}
+					</ul>
+				</div>
+				<div class="col-lg-9">
+					<div class="row">
+						{{#if Template.subscriptionsReady}}
+							{{#each images}}
+								<div class="col-lg-2 col-md-2 col-sm-4">
+									{{#if currentUser}}
+										{{#if private}}
+											<span class="private-badge">Priv</span>
+										{{/if}}
+										{{#unless tags}}
+											<span class="image-badge missing-tags">Tags?</span>
+										{{else}}
+											<span class="image-badge present-tags">
+											{{#each tag in tags}}
+												<span>{{tag}}</span>
+											{{/each}}
+											</span>
+										{{/unless}}
+									{{/if}}
+									<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
+										<img class="thumbnail" imageid="{{_id}}" src="{{thumbnail}}"/>
+										<div class="image-size">{{size}}</div>
+									</a>
+								</div>
+							{{/each}}
+						{{else}}
+							<center><img src="/circle-loading-animation.gif"></center>
+						{{/if}}
+					</div>
+				</div>
+			</div>
+		{{else}}
+			<div class="row">
+				{{#if Template.subscriptionsReady}}
+					{{#each images}}
+						<div class="col-lg-2 col-md-2 col-sm-4">
+							{{#if currentUser}}
+								{{#if private}}
+									<span class="image-badge private-image">Priv</span>
+								{{/if}}
+								{{#unless tags}}
+									<span class="image-badge missing-tags">Tags?</span>
+								{{else}}
+									<span class="image-badge present-tags">
+									{{#each tag in tags}}
+										<span>{{tag}}</span>
+									{{/each}}
+									</span>
+								{{/unless}}
+							{{/if}}
+							<a class="image" imageid="{{_id}}" href="/image/{{_id}}">
+								<img class="thumbnail" imageid="{{_id}}" src="{{thumbnail}}"/>
+								<div class="image-size">{{size}}</div>
+							</a>
+						</div>
+					{{/each}}
+				{{else}}
+					<center><img src="/circle-loading-animation.gif"></center>
+				{{/if}}
+			</div>
+		{{/if}}
+
+		{{#if needsPagination}}
+			<nav aria-label="Page navigation">
+				<ul class="pagination" style="flex-wrap: wrap">
+					{{#each page in pages}}
+						{{{page}}}
+					{{/each}}
+				</ul>
+			</nav>
+		{{/if}}
+</template>
+
+<template name="other_user">
+	<li>
+		<a href="/user/{{contributor.id}}">{{contributor.email}}</a>
+			{{#if contributor.banned}}
+				<a data-contributor="{{contributor.id}}" class="banning banned">banned</a>
+			{{else}}
+		 		<a data-contributor="{{contributor.id}}" class="banning ban">ban</a>
+	 		{{/if}}
+	</li>
+</template>

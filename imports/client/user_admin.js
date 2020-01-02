@@ -1,4 +1,5 @@
 import 'meteor/jamgold:accounts-admin-ui-bootstrap-3';
+import './admin';
 
 Template.accountsAdmin.onCreated(function(){
   const instance = this;

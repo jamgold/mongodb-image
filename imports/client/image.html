@@ -1,0 +1,160 @@
+<template name="image">
+	{{#if img}} 
+		{{#with img}}
+			<div
+				class="collapse"
+				id="imageInfo"
+				aria-labelledby="imageInfoLabel"
+			>
+				<div class="card card-body">
+					{{>image_info img=this user=user user_name=user_name myImage=myImage size=size type=type user_banned=user_banned}}
+					<button  class="btn btn-default" data-toggle="collapse" data-target="#imageInfo"> Close </button>
+				</div>
+			</div>
+
+			{{#if prev}}
+				<a class="btn carousel prev" href="/image/{{prev}}"><i class="fas fa-chevron-left"></i></a>
+			{{/if}}
+			{{#if next}}
+				<a class="btn carousel next" href="/image/{{next}}"><i class="fas fa-chevron-right"></i></a>
+			{{/if}}
+			{{#if src}}
+				{{#if allowed}}
+					{{#if cover}}
+						<div
+							class="fullscreen {{cssclassesImage}}"
+							style="background-image: url( {{src.get}} )"
+						></div>
+					{{else}}
+						<img src="{{src.get}}" class="fullscreen {{cssclassesImage}}" />
+					{{/if}}
+				{{else}}
+					<h1>Access Denied</h1>
+				{{/if}}
+				{{#if commentOut}}
+				<div class="image type">
+					<label class="radio-inline">
+						<input type="radio" name="image-type" id="image-type"
+						data-image-id="{{_id}}" value="cover" {{imageType 'cover'}}> Cover
+					</label>
+					<label class="radio-inline">
+						<input type="radio" name="image-type" id="image-type"
+						data-image-id="{{_id}}" value="width" {{imageType 'width'}}> 100% Width
+					</label>
+					<label class="radio-inline">
+						<input type="radio" name="image-type" id="image-type"
+						data-image-id="{{_id}}" value="height" {{imageType 'height'}}> 100% Height
+					</label>
+					<button
+						class="btn btn-default"
+						data-toggle="collapse"
+						data-backdrop="false"
+						data-target="#imageInfo"
+					>Info</button>
+				</div>
+				<div class="image buttons">
+					{{#if canDelete user}}
+					<label class="radio-inline">
+						<input
+							type="radio"
+							name="cssclasses"
+							id="cssclasses"
+							data-image-id="{{_id}}"
+							value=""
+							{{active}}
+						/>
+						None
+					</label>
+					<label class="radio-inline">
+						<input type="radio" name="cssclasses" id="cssclasses"
+						data-image-id="{{_id}}" value="transform90" {{active 'transform90'}}> 90
+					</label>
+					<label class="radio-inline">
+						<input type="radio" name="cssclasses" id="cssclasses"
+						data-image-id="{{_id}}" value="transform180" {{active 'transform180'}}>
+						180
+					</label>
+					<label class="radio-inline">
+						<input type="radio" name="cssclasses" id="cssclasses"
+						data-image-id="{{_id}}" value="transform270" {{active 'transform270'}}>
+						270
+					</label>
+					<a class="btn btn-success crop btn-xl" href="/crop/{{_id}}">Crop</a>
+					<a class="btn btn-danger delete btn-xl" href="/" id="{{_id}}">Delete</a>
+					{{/if}}
+					<a class="btn btn-default btn-xl back" href="/">Back</a>
+				</div>
+				{{/if}}
+				{{md5hash}}
+			{{else}}
+				Loading dataURI ... 
+			{{/if}}
+		{{/with}}
+	{{else}}
+		<h1>Image does not exist</h1>
+  {{/if}}
+</template>
+
+<template name="image_info">
+	<h5 class="card-title">Image Data</h5>
+  <ul>
+    <li><a target="_new" href="{{img.src.get}}">{{img.name}}</a></li>
+    <li>size {{size}} bytes</li>
+    <li>mime-type {{type}}</li>
+    {{#if isInRole 'admin'}}
+    <li>{{{user_banned}}} <a href="/user/{{user}}">{{user_name}}</a></li>
+    {{/if}}
+  </ul>
+	{{>tags title="Enter tags for this image" img=img}}
+	{{#if myImage}}
+		{{>private img=img}} 
+	{{/if}}
+	<div>
+		<h5 class="card-title">Display Image</h5>
+		<label class="radio-inline">
+		<input type="radio" name="image-type" id="image-type"
+		data-image-id="{{img._id}}" value="cover" {{imageType 'cover'}}> Cover
+		</label>
+		<label class="radio-inline">
+		<input type="radio" name="image-type" id="image-type"
+		data-image-id="{{img._id}}" value="width" {{imageType 'width'}}> 100% Width
+		</label>
+		<label class="radio-inline">
+		<input type="radio" name="image-type" id="image-type"
+		data-image-id="{{img._id}}" value="height" {{imageType 'height'}}> 100% Height
+		</label>
+	</div>
+	<div>
+		<h5 class="card-title">Image Actions</h5>
+		{{#if canDelete user}}
+		<label class="radio-inline">
+			<input
+				type="radio"
+				name="cssclasses"
+				id="cssclasses"
+				data-image-id="{{_id}}"
+				value=""
+				{{active}}
+			/>
+			None
+		</label>
+		<label class="radio-inline">
+			<input type="radio" name="cssclasses" id="cssclasses"
+			data-image-id="{{_id}}" value="transform90" {{active 'transform90'}}> 90
+		</label>
+		<label class="radio-inline">
+			<input type="radio" name="cssclasses" id="cssclasses"
+			data-image-id="{{_id}}" value="transform180" {{active 'transform180'}}>
+			180
+		</label>
+		<label class="radio-inline">
+			<input type="radio" name="cssclasses" id="cssclasses"
+			data-image-id="{{_id}}" value="transform270" {{active 'transform270'}}>
+			270
+		</label>
+		<!-- <a class="btn btn-success crop btn-xl" href="/crop/{{img._id}}">Crop</a> -->
+		<!-- <button class="btn btn-danger delete btn-xl" id="{{img._id}}">Delete</button> -->
+		{{/if}}
+	</div>
+
+</template>
