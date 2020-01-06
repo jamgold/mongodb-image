@@ -1,11 +1,29 @@
 <template name='crop'>
-  <table width=100%>
+  {{#if Template.subscriptionsReady}}
+    {{#if canCrop}}
+      {{! make this a sub template so we only engage Croppie if we can actually edit the image}}
+      {{>croppie id=id}}
+    {{else}}
+      {{#if currentUser}}
+        <h1>You don't have permission to crop this image</h1>
+      {{else}}
+        <h1>You need to login</h1>
+      {{/if}}
+    {{/if}}
+  {{else}}
+    <center><img src="/circle-loading-animation.gif"></center>
+  {{/if}}
+</template>
+
+<template name='croppie'>
+    <table width=100%>
     <thead>
       <tr align=center>
         <th width="80%">Original</th>
         <th>Cropped</th>
       </tr>
     </thead>
+    
     <tbody>
       <tr valign=top align=center>
         <td>

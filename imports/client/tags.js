@@ -9,7 +9,10 @@ Template.tags.onRendered(function () {
   // https://github.com/aehlke/tag-it/blob/master/README.markdown
   //
   const instance = this;
+  const userId = Meteor.userId();
+  instance.validTags = [];
   let useHook = true;
+
   // console.info(`${instance.view.name}.onRendered`,instance.data);
 
   let options = {
@@ -29,16 +32,19 @@ Template.tags.onRendered(function () {
       minLength: 2,
       // autoFocus: true,
       source(request, callback) {
-        Meteor.call('tags', request.term, (err, res) => {
+        Meteor.call('tags', request.term, (err, tags) => {
           var options = [];
-          if (err) console.error(err); else options = res.map((t) => { return { label: t, value: t } });
+          if (err) {
+            console.error(err);
+          } else {
+            instance.validTags = tags;
+            options = tags.map((t) => { return { label: t, value: t } });
+          }
           callback(options);
         });
       }
     },
   };
-
-  const userId = Meteor.userId();
 
   // console.log(`${instance.view.name}.autorun ${userId}`);
   //
@@ -48,15 +54,25 @@ Template.tags.onRendered(function () {
     //
     // if template was called with array of tags, use those
     //
-    // options['availableTags'] = instance.data.tags;
+    options.allowSpaces = true;
+    // options.autocomplete.autoFocus = true;
+    options.readOnly = false;
     //
     // make sure we can only add existing tags
     //
-    // options['beforeTagAdded'] = function (event, ui) {
-    //   return instance.data.tags.indexOf(ui.tagLabel) >= 0;
-    // };
-    options['readOnly'] = false;
-    options['afterTagAdded'] = function (event, ui) {
+    options.beforeTagAdded = function (event, ui) {
+      var valid = true;
+      if(useHook){
+        const tagit = instance.$(this).data('uiTagit');
+        valid = ui.tagLabel == 'missing' || instance.validTags.indexOf(ui.tagLabel) >= 0;
+        if (!valid) tagit.tagInput.val('');
+      }
+      return valid;
+    };
+    //
+    // add/remove tags to TagSearch ReactiveVar
+    //
+    options.afterTagAdded = function (event, ui) {
       if (useHook) {
         let tags = TagSearch.get();
         tags.push(ui.tagLabel);
@@ -65,7 +81,7 @@ Template.tags.onRendered(function () {
         TagSearch.set(tags);
       }
     };
-    options['afterTagRemoved'] = function (event, ui) {
+    options.afterTagRemoved = function (event, ui) {
       if (useHook) {
         let tags = TagSearch.get();
         ImageStart = 0;
@@ -77,27 +93,17 @@ Template.tags.onRendered(function () {
     //
     // only let logged-in users tag
     //
-    options['readOnly'] = userId == null || userId == undefined;
-    //
-    // add autocomplete from meteor call
-    //
-    // options['autocomplete']['source'] = function (request, callback) {
-    //   Meteor.call('tags', request.term, (err, res) => {
-    //     var options = [];
-    //     if (err) console.error(err); else options = res.map((t) => { return { label: t, value: t } });
-    //     callback(options);
-    //   });
-    // };
+    options.readOnly = userId == null || userId == undefined;
     //
     // add a clicked tag to the search
     //
-    options['onTagClicked'] = function (event, ui) {
+    options.onTagClicked = function (event, ui) {
       var tags = TagSearch.get();
       tags.push(ui.tagLabel);
       TagSearch.set(tags);
+      Session.set('imageStart', 0);
       FlowRouter.go('/');
     };
-    // options['readOnly'] = userId == null;
     // options['beforeTagAdded'] = function(event, ui) {
     //   let readOnly = instance.$('#myTags').prop('readOnly');
     //   if(readOnly) {
@@ -107,13 +113,13 @@ Template.tags.onRendered(function () {
     //     return true;
     //   }
     // }
-    options['afterTagAdded'] = function (event, ui) {
+    options.afterTagAdded = function (event, ui) {
       if (TagsImgId) {
         // console.log(`added ${ui.tagLabel} to ${TagsImgId}`,ui);
         DBImages.update(TagsImgId, { $push: { tags: ui.tagLabel } });
       }
     };
-    options['beforeTagRemoved'] = function (event, ui) {
+    options.beforeTagRemoved = function (event, ui) {
       // let userId = Meteor.userId();
       // console.log(`beforeTagRemoved ui.tagLabel ${ui.tagLabel} TagsImgId=${TagsImgId} userId=${userId} useHook=${useHook}`);
       if (TagsImgId == null) {
@@ -123,7 +129,7 @@ Template.tags.onRendered(function () {
         return userId != null;
       }
     };
-    options['afterTagRemoved'] = function (event, ui) {
+    options.afterTagRemoved = function (event, ui) {
       if (TagsImgId) {
         // console.log(`removed ${ui.tagLabel} from ${TagsImgId}`,ui);
         DBImages.update(TagsImgId, { $pull: { tags: ui.tagLabel } });
@@ -137,6 +143,7 @@ Template.tags.onRendered(function () {
   if (instance.data.tagged) {
     useHook = false;
     instance.data.tagged.forEach(function (tag) {
+      // console.log(`createTag ${tag}`)
       instance.$("#myTags").tagit("createTag", tag);
     });
     useHook = true;

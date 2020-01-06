@@ -1,9 +1,13 @@
 import { HTTP } from 'meteor/http';
+import '/imports/server/rest';
 
 Meteor.publish('thumbnails', function(imageStart, tags){
   const self = this;
   let query = {thumbnail:{$exists:1},$or:[{private:{$exists:0}},{private:{$in:[this.userId]}},{user:self.userId}]};
-  if(tags !== undefined && tags.length>0) query['tags'] = {$all: tags};
+  if(tags !== undefined) {
+    if(tags.length>0) query['tags'] = {$all: tags};
+    if (tags[0] == 'missing') query['tags'] = { $exists: 0 };
+  }
   imageStart = imageStart == undefined ? 0 : imageStart;
   // console.info('thumbnails start:'+ imageStart+' subscriptionId:'+self._subscriptionId);
   var cursor = DBImages.find(query,{
@@ -87,10 +91,16 @@ Meteor.methods({
     const distinct = Meteor.wrapAsync(raw.distinct, raw);
 
     let tags = distinct('tags');
-    return search == undefined ? tags : tags.filter((tag) => {return tag.includes(search)}).sort();
+    if(search == undefined){
+      return tags.sort();
+    } else {
+      const s = search.toLowerCase();
+      // console.log(`searching for ${s}`);
+      return tags.filter((tag) => { return tag.toLowerCase().includes(s) }).sort();
+    }
   },
   users(search){
-    return this.userId ? Meteor.users.find({'emails.0.address':{$regex: search}}).map((u) => { return {value: u._id, label: u.emails[0].address}}) : null;
+    return this.userId ? Meteor.users.find({'emails.0.address':{$regex: search, $options: 'i'}}).map((u) => { return {value: u._id, label: u.emails[0].address}}) : null;
   },
   maxOrder(){
     let images = DBImages.find({order:{$exists:1}},{sort:{order:-1},limit:1}).fetch()
@@ -102,6 +112,7 @@ Meteor.methods({
     let query = { order: { $lt: order }, $or: [{ private: { $exists: 0 } }, { private: { $in: [userId] } }, { user: self.userId }] };
     if(tags != undefined && tags.length>0){
       query['tags'] = { $all: tags };
+      if (tags[0] == 'missing') query['tags'] = { $exists: 0 };
     }
     let images = DBImages.find(query,{sort:{order:-1},limit:1}).fetch()
     // console.log(`nextImage ${order} ${images.length}`, tags);
@@ -113,6 +124,7 @@ Meteor.methods({
     let query = { order: { $gt: order }, $or: [{ private: { $exists: 0 } }, { private: { $in: [userId] } }, { user: self.userId }]};
     if (tags != undefined && tags.length > 0) {
       query['tags'] = { $all: tags };
+      if (tags[0] == 'missing') query['tags'] = { $exists: 0 };
     }
     let images =  DBImages.find(query,{sort:{order:1},limit:1}).fetch();
     // console.log(`prevImage ${order} ${images.length}`, tags);
@@ -163,8 +175,10 @@ Meteor.methods({
   },
   imageCount: function(tags) {
     let query = { thumbnail: { $exists: 1 } };
-    if (tags !== undefined && tags.length > 0) query['tags'] = { $all: tags };
-
+    if (tags !== undefined && tags.length > 0) {
+      query['tags'] = { $all: tags };
+      if (tags[0] == 'missing') query['tags'] = { $exists: 0 };
+    }
     return DBImages.find(query).count();
   },
   imageExists: function(md5hash) {

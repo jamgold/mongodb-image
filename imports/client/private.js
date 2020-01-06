@@ -6,6 +6,7 @@ Template.private.onCreated(function(){
   instance.imageid = null;
   instance.validUsers = [];
   instance.createTags = function(data){
+    if(data.img._id == undefined) return;
     instance.imageid = data.img._id;
     instance.useHook = false;
     // console.log(data.img);
@@ -92,7 +93,7 @@ Template.private.onRendered(function(){
       if (instance.useHook) {
         // console.log(`afterTagAdded ${ui.tagValue}`);
         var uid = instance.validUser(ui.tagValue);
-        if (uid) {
+        if (uid && instance.imageid) {
           console.log(`added ${uid} to ${instance.imageid}`);
           DBImages.update(instance.imageid, { $push: { private: uid } });
         }
@@ -102,7 +103,7 @@ Template.private.onRendered(function(){
       // console.log(ui);
       if (instance.useHook) {
         var uid = ui.tagValue;
-        if (uid) {
+        if (uid && instance.imageid) {
           // console.log(`removed ${ui.tagLabel} (${uid}) from ${instance.imageid}`, instance.data.img);
           if (instance.data.img && instance.data.img.private && instance.data.img.private.length == 1) {
             DBImages.update(instance.imageid, { $unset: { private: 1 } });

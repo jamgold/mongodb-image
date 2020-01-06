@@ -10,6 +10,7 @@
     "bcrypt": "^3.0.7",
     "bootstrap": "^4.4.1",
     "croppie": "^2.6.4",
+    "glyphicons-only-bootstrap": "^1.0.1",
     "jquery": "^3.4.1",
     "jquery-ui-dist": "^1.12.1",
     "md5": "^2.2.1",

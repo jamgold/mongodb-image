@@ -1,0 +1,19 @@
+<template name="upload">
+	{{#if currentUser}}
+		<div class="mongodb-image-droppable">
+			<h1>Drag & Drop images or Click</h1>
+			<img class="hidden" style="max-width: 50%" src="/loading.gif">
+		</div>
+		<input id="fileinput" name="fileinput" multiple="true" type="file" style="display:none;">
+		<div class="input-group">
+			<input type="text" class="form-control" id="image-url" autocomplete="false" placeholder="Enter URL to image">
+			<span class="input-group-btn">
+				<button class="btn btn-default upload-url">Upload</button>
+			</span>
+		</div>
+		{{>tagit title="Enter tags for this image" id="new_image_tags" options=tagOptions}}
+		{{>tagit title="Enter Users" id="new_image_users" options=privateOptions}} 
+	{{else}}
+		<h1>You need to be logged in to upload pictures</h1>
+	{{/if}}
+</template>

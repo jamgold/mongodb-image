@@ -2,8 +2,8 @@
 body.bootstrap {
 	margin-top: 4em;
 }
-.ui-menu {
-	z-index: 101;
+ul.ui-autocomplete {
+	z-index: 1500;
 }
 #myTags, #private {
 	font-size: 100%;
@@ -121,7 +121,7 @@ div.image.buttons:hover, div.image.type:hover {
 }
 #imageInfo {
 	width: 24em;
-	position: absolute;
+	position: fixed;
 	z-index: 10;
 }
 .image-info {
@@ -183,6 +183,7 @@ a.carousel.prev {
 }
 .present-tags {
 	bottom: 10px;
+	text-align: right;
 }
 .present-tags span {
 	background: green;

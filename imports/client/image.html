@@ -7,16 +7,25 @@
 				aria-labelledby="imageInfoLabel"
 			>
 				<div class="card card-body">
-					{{>image_info img=this user=user user_name=user_name myImage=myImage size=size type=type user_banned=user_banned}}
+					{{>image_info
+						img=this 
+						cssclasses=cssclasses 
+						user=user 
+						user_name=user_name
+						myImage=myImage
+						size=size
+						type=type
+						user_banned=user_banned
+					}}
 					<button  class="btn btn-default" data-toggle="collapse" data-target="#imageInfo"> Close </button>
 				</div>
 			</div>
 
 			{{#if prev}}
-				<a class="btn carousel prev" href="/image/{{prev}}"><i class="fas fa-chevron-left"></i></a>
+				<a class="btn carousel prev" href="/image/{{prev}}"><i class="glyphicon glyphicon-chevron-left"></i></a>
 			{{/if}}
 			{{#if next}}
-				<a class="btn carousel next" href="/image/{{next}}"><i class="fas fa-chevron-right"></i></a>
+				<a class="btn carousel next" href="/image/{{next}}"><i class="glyphicon glyphicon-chevron-right"></i></a>
 			{{/if}}
 			{{#if src}}
 				{{#if allowed}}
@@ -124,9 +133,9 @@
 		data-image-id="{{img._id}}" value="height" {{imageType 'height'}}> 100% Height
 		</label>
 	</div>
+	{{#if canDelete user}}
 	<div>
-		<h5 class="card-title">Image Actions</h5>
-		{{#if canDelete user}}
+		<h5 class="card-title">Image Actions (autosaved)</h5>
 		<label class="radio-inline">
 			<input
 				type="radio"
@@ -154,7 +163,6 @@
 		</label>
 		<!-- <a class="btn btn-success crop btn-xl" href="/crop/{{img._id}}">Crop</a> -->
 		<!-- <button class="btn btn-danger delete btn-xl" id="{{img._id}}">Delete</button> -->
-		{{/if}}
 	</div>
-
+	{{/if}}
 </template>

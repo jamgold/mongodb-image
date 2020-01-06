@@ -105,6 +105,10 @@ Template.image.helpers({
     // console.log(`myImage ${userId} ${img.user}`);
     return img && img.user == userId;
   },
+  cssclasses(){
+    const instance = Template.instance();
+    return instance.cssclasses;
+  },
   cssclassesImage() {
     var instance = Template.instance();
     var css = instance.cssclasses.get();
@@ -176,6 +180,10 @@ Template.image.events({
   // },
 });
 
+Template.image_info.onRendered(function(){
+  const instance = this;
+  // console.log(`${instance.view.name}.onRendered`, instance.data);
+})
 Template.image_info.helpers({
   imageType(type) {
     const t = ImageType.get();
@@ -183,11 +191,11 @@ Template.image_info.helpers({
     return t == type ? 'checked' : '';
   },
   active(c) {
-    // console.log(c,this);
     if (c == undefined) {
-      return this.cssclasses == undefined || this.cssclasses == "" ? "checked" : "";
+      return this.cssclasses == undefined || this.cssclasses.get() == "" ? "checked" : "";
     } else {
-      return this.cssclasses == c ? "checked" : "";
+      // console.log(c, this);
+      return this.cssclasses.get() == c ? "checked" : "";
     }
   },
   canDelete: function (owner) {
@@ -202,36 +210,35 @@ Template.image_info.events({
   'change #cssclasses'(e, t) {
     var c = e.currentTarget;
     var id = c.dataset.imageId;
-    var image = DBImages.findOne(id);
-    var old = image.cssclasses;
+    // var image = DBImages.findOne(id);
+    // var old = image.cssclasses;
     DBImages.update(id, { $set: { cssclasses: c.value } }, function (r) {
       // t.$('.fullscreen').removeClass(old).addClass(c.value);
-      t.cssclasses.set(c.value);
+      t.data.cssclasses.set(c.value);
     })
   },
-  'click .delete': function (e, t) {
-    const id = e.currentTarget.id;
-    if (confirm(`Really Delete? ${id}`)) {
-      DBImages.remove({ _id: id }, function (err) {
-        if (err) {
-          console.log(err);
-          e.preventDefault();
-        }
-        else {
-          Session.set('uploaded', Session.get('uploaded') - 1);
-          FlowRouter.go('/');
-        }
-      });
-    }
-  },
+  // 'click .delete': function (e, t) {
+  //   const id = e.currentTarget.id;
+  //   if (confirm(`Really Delete? ${id}`)) {
+  //     DBImages.remove({ _id: id }, function (err) {
+  //       if (err) {
+  //         console.log(err);
+  //         e.preventDefault();
+  //       }
+  //       else {
+  //         Session.set('uploaded', Session.get('uploaded') - 1);
+  //         FlowRouter.go('/');
+  //       }
+  //     });
+  //   }
+  // },
   'click a.ban': function (e, t) {
     if (confirm('Really ban this user?')) {
       var img = t.img.get();
       Meteor.call('ban', img.user, true, function (err, res) {
         if (err) {
           console.log(err)
-        }
-        else {
+        } else {
           e.target.className = res;
           e.target.innerHTML = res;
         }
@@ -245,12 +252,10 @@ Template.image_info.events({
       Meteor.call('ban', img.user, false, function (err, res) {
         if (err) {
           console.log(err)
-        }
-        else {
+        } else {
           e.target.className = res;
           e.target.innerHTML = res;
         }
-
         // console.info(e.target.className,err,res);
       });
     }

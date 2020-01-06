@@ -8,16 +8,42 @@ import Croppie from 'croppie';
 //
 Template.crop.onCreated(function(){
   const instance = this;
-  // console.log(FlowRouter.current().params);
-  instance.id = FlowRouter.current().params.id;
-  instance.details = { };
-  // console.log(`${instance.view.name}.onCreated`, instance.details);
-  window.crop = instance;
+  // console.log(`${instance.view.name}.onCreated`, instance.data);
+  instance.subscribe('image', FlowRouter.current().params.id);
 });
 Template.crop.onRendered(function(){
   const instance = this;
+  // console.log(`${instance.view.name}.onRendered`, instance.data);
+});
+Template.crop.onDestroyed(function(){
+  const instance = this;
+});
+Template.crop.helpers({
+  id() {
+    return FlowRouter.current().params.id;
+  },
+  canCrop(){
+    const id = FlowRouter.current().params.id;
+    const img = DBImages.findOne(id);
+    const userId = Meteor.userId();
+    // console.log(`canCrop ${id} for ${userId}`, img);
+    return img && userId && (Roles.userIsInRole(userId, 'admin') || img.user == userId);
+  },
+});
+Template.crop.events({
+});
+
+Template.croppie.onCreated(function(){
+  const instance = this;
+  window.crop = instance;
+  instance.details = {};
+  // console.log(`${instance.view.name}.onCreated`, instance.data);
+});
+Template.croppie.onRendered(function(){
+  const instance = this;
   instance.image = instance.find('#croppie');
   instance.cropped = instance.find('#cropped');
+  // console.log(`${instance.view.name}.onRendered`, instance.data);
 
   instance.croppie = new Croppie(instance.image, {
     viewport: { width: 200, height: 200 },
@@ -31,17 +57,17 @@ Template.crop.onRendered(function(){
     // mouseWheelZoom: 'ctrl'
   });
 
-  instance.image.addEventListener('load', function(ev){
+  instance.image.addEventListener('load', function (ev) {
     // const img = instance.img.get();
     // console.log(`image loaded`, instance.details);
-    Meteor.setTimeout(function(){
+    Meteor.setTimeout(function () {
       var details = {};
-      const img = DBImages.findOne(instance.id);
+      const img = DBImages.findOne(instance.data.id);
       if (img) {
         // console.log(`${instance.view.name}.onCreated subscribed`)
         details = img.details ? img.details : {};
       }
-      Meteor.call('src', instance.id, null, function (err, res) {
+      Meteor.call('src', instance.data.id, null, function (err, res) {
         if (err) {
           console.log(err);
         } else {
@@ -53,24 +79,23 @@ Template.crop.onRendered(function(){
     }, 100)
   });
 });
-Template.crop.onDestroyed(function(){
+Template.croppie.onDestroyed(function(){
   const instance = this;
   instance.croppie.destroy();
 });
-Template.crop.helpers({
-  id() {
-    return Template.instance().id;
-  },
+Template.croppie.helpers({
 });
-Template.crop.events({
+Template.croppie.events({
   'click button.result': async function (event, instance) {
     const image = await instance.croppie.result();
     instance.cropped.src = image;
-    DBImages.update(instance.id,{$set:{
-      thumbnail: image,
-      details: instance.details,
-    }});
-    FlowRouter.go(`/image/${instance.id}`);
+    DBImages.update(instance.data.id, {
+      $set: {
+        thumbnail: image,
+        details: instance.details,
+      }
+    });
+    FlowRouter.go(`/image/${instance.data.id}`);
   },
   'update.croppie .croppieUpdate': async function (event, instance) {
     // console.log(event.originalEvent.detail);
