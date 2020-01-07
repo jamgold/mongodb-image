@@ -1,4 +1,5 @@
 import { HTTP } from 'meteor/http';
+import { check } from 'meteor/check';
 import '/imports/server/rest';
 
 Meteor.publish('thumbnails', function(imageStart, tags){
@@ -97,6 +98,26 @@ Meteor.methods({
       const s = search.toLowerCase();
       // console.log(`searching for ${s}`);
       return tags.filter((tag) => { return tag.toLowerCase().includes(s) }).sort();
+    }
+  },
+  update_tag(oldName,newName) {
+    check(oldName, String);
+    check(newName, String);
+    if(Roles.userIsInRole(this.userId, 'admin')) {
+      // find all the images that contain oldName tag
+      var count = 0;
+      DBImages.find({tags:{$in:[oldName]}}).forEach(function(i){
+        // get the tags with oldName filtered out
+        var tags = i.tags.filter((t) => {return t!=oldName});
+        // add newName to tags if it doesn't exist
+        if(tags.indexOf(newName)<0) tags.push(newName);
+        // write back record
+        count += DBImages.update(i._id,{$set:{tags: tags}});
+      });
+      // return all tags sorted
+      return {count: count, tags: Meteor.call('tags')};
+    } else {
+      throw new Meteor.Error(403, 'Access Denied', 'only admins can rename tags');
     }
   },
   users(search){

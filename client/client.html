@@ -107,7 +107,7 @@
 			{{else}}
 				<span class="image-badge present-tags">
 				{{#each tag in tags}}
-					<span>{{tag}}</span>
+					<a class="tag" data-tag="{{tag}}" href="#">{{tag}}</a>
 				{{/each}}
 				</span>
 			{{/unless}}
@@ -179,28 +179,33 @@ reader.onload = function(e) {
     <div class="collapse navbar-collapse" id="navbarsExampleDefault">
 			<ul class="navbar-nav mr-auto">
 			<!-- <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Disabled</a> -->
-				<li class="nav-item">
-					<a class="nav-link conditional" data-toggle="collapse" data-target="#imageInfo" data-id="{{imgid}}" href="/image/{{imgid}}">Info</a>
-				</li>
-				{{#if canModify}}
-				<li class="nav-item">
-					<a class="nav-link conditional" href="/crop/{{imgid}}">Crop</a>
-				</li>
-				<li class="nav-item">
-					<a class="nav-link conditional btn btn-outline-danger delete" id="{{imgid}}">Delete</a>
-				</li>
-				{{/if}}
-				<!-- <li class="nav-item">
-					<a class="nav-link conditional " href="{{url}}">Back</a>
-				</li> -->
+				{{#with imageLinks}}
+					{{#each link in links}}
+						<li class="nav-item">
+							{{{link}}}
+						</li>
+					{{/each}}
+				{{/with}}
 			</ul>
-
       <ul class="navbar-nav ml-auto">
-				{{#each item in right}}
-        <li class="nav-item">
-          <a class="nav-link" href="{{item.href}}">{{item.text}}</a>
-				</li>
-				{{/each}}
+				{{#if currentUser}}
+					{{#if isInRole 'admin'}}
+						<li class="nav-item dropdown">
+							<a class="nav-link dropdown-toggle" href="#" id="navbarAdminDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+								Admin
+							</a>
+							<div class="dropdown-menu" aria-labelledby="navbarAdminDropdown">
+								<a class="dropdown-item" href="/admin/users">Users</a>
+								<a class="dropdown-item" href="/admin/tags">Tags</a>
+								<!-- <div class="dropdown-divider"></div> -->
+								<!-- <a class="dropdown-item" href="#">Something else here</a> -->
+							</div>
+						</li>
+					{{/if}}
+					<li class="nav-item">
+						<a class="nav-link" href="/user/{{currentUser._id}}">My Images</a>
+					</li>
+				{{/if}}
 				{{>loginButtons}}
 			</ul>
     </div>

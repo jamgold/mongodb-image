@@ -41,12 +41,21 @@ FlowRouter.route('/user/:user', {
   }
 });
 
-FlowRouter.route('/admin', {
-  name: 'admin',
+FlowRouter.route('/admin/users', {
+  name: 'admin_users',
   async action(params) {
     // import 'meteor/jamgold:accounts-admin-ui-bootstrap-3';
-    import '/imports/client/user_admin';
-    this.render('bootstrap', "admin", {content: "admin"});
+    import '/imports/client/admin/users';
+    this.render('bootstrap', "user_admin", {content: "user_admin"});
+  },
+});
+
+FlowRouter.route('/admin/tags', {
+  name: 'admin_tags',
+  async action(params) {
+    // import 'meteor/jamgold:accounts-admin-ui-bootstrap-3';
+    import '/imports/client/admin/tags';
+    this.render('bootstrap', "tag_admin", { content: "tag_admin" });
   },
 });
 

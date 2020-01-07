@@ -34,6 +34,16 @@ ImageStart = 0;
 
 Bootstrap3boilerplate = {
   __alert: new ReactiveVar([]),
+  _alertTypes:[
+    "primary",
+    "secondary",
+    "success",
+    "danger",
+    "warning",
+    "info",
+    "light",
+    "dark",
+  ],
   alert: function (type, text, dismiss) {
     var alertid = Random.id();
     type = _.indexOf(Bootstrap3boilerplate._alertTypes, type) >= 0 ? type : 'info';
@@ -218,6 +228,17 @@ Template.thumbnail.helpers({
   //   console.log(this);
   // }
 });
+Template.thumbnail.events({
+  'click span.present-tags .tag'(event, instance){
+    var tags = TagSearch.get();
+    const tag = event.currentTarget.dataset.tag;
+    if(tags.indexOf(tag<0)){
+      // console.log(`adding ${tag} to ${tags}`);
+      tags.push(tag);
+      TagSearch.set(tags);
+    }
+  },
+});
 
 Template.bs_navbar.onCreated(function(){
   const instance = this;
@@ -243,36 +264,20 @@ Template.bs_navbar.helpers({
   title(){
     return `${Session.get('imageCount')} Images`;
   },
-  canModify(){
+  imageLinks(){
     FlowRouter.watchPathChange();
     const userId = Meteor.userId();
     const img = DBImages.findOne(FlowRouter.current().params.id);
-    return img && userId && (Roles.userIsInRole(userId, 'admin') || img.user == userId);
-  },
-  imgid(){
-    FlowRouter.watchPathChange();
-    const c = FlowRouter.current();
-    const instance = Template.instance();
-    instance.imgid = ['image', 'crop'].indexOf(c.route.name) >= 0 ? c.params.id : '';
-    // console.log(`imgid=${instance.imgid}`);
-    return instance.imgid;
-  },
-  url(){
-    FlowRouter.watchPathChange();
-    const c = FlowRouter.current();
-    const url = c.route.name == 'image' ? '/' : `/image/${c.params.id}`;
-    return url;
-  },
-  right(){
-    const userId = Meteor.userId();
-    var right = [];
-    if (userId) {
-      right.unshift({ text: 'My Images', href: `/user/${userId}` });
+    const result = { links: [], imgid: null};
+    if (img) {
+      result.imgid = img._id;
+      result.links.push(`<a class="nav-link conditional" data-toggle="collapse" data-target="#imageInfo" data-id="${img._id}" href="/image/${img._id}">Info</a>`)
+      if(img.user == userId || Roles.userIsInRole(userId, 'admin')){
+        result.links.push(`<a class="nav-link conditional" href="/crop/${img._id}">Crop</a>`);
+        result.links.push(`<a class="nav-link conditional btn btn-outline-danger delete" id="${img._id}">Delete</a>`)
+      }
     }
-    if (Roles.userIsInRole(Meteor.userId(), 'admin')) {
-      right.unshift({ text: 'Admin', href: '/admin' });
-    }
-    return right;
+    return result;
   },
 });
 Template.bs_navbar.events({

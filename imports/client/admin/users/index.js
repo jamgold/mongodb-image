@@ -1,5 +1,14 @@
 import 'meteor/jamgold:accounts-admin-ui-bootstrap-3';
-import './admin';
+import './user_admin.html';
+console.log(__filename);
+// Template.user_admin.onRendered(function () {
+//   const instance = this;
+// });
+// Template.user_admin.helpers({
+//   isAdminUser: function () {
+//     return Roles.userIsInRole(Meteor.user(), ['admin']);
+//   }
+// });
 
 Template.accountsAdmin.onCreated(function(){
   const instance = this;

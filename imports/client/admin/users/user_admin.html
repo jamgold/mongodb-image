@@ -1,5 +1,5 @@
-<template name="admin">
-    {{#if isAdminUser}}
+<template name="user_admin">
+    {{#if isInRole 'admin'}}
         {{> accountsAdmin}}
     {{else}}
         Must be admin to see this...
