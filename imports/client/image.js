@@ -61,25 +61,41 @@ Template.image.onCreated(function () {
             instance.cssclasses.set(img.cssclasses);
           }
         });
+        if (Roles.userIsInRole(Meteor.userId(), 'admin')) {
+          if (img)
+            Meteor.call('user_name', img.user, function (err, res) {
+              if (!err) {
+                Session.set('user_name', res.email);
+                Session.set('user_banned', res.banned);
+                // console.log(`imageRenderedAutorun ${res.email}`);
+              } else console.error(err);
+            });
+        }
+
       }
       TagsImgId = params.id;
     });
   });
 });
-Template.image.onRendered(function () {
-  // console.info('Template.image.rendered', this);
-  if (Roles.userIsInRole(Meteor.userId(), 'admin')) {
-    var params = FlowRouter.current().params;
-    var img = DBImages.findOne({ _id: params.id });
-    if (img)
-      Meteor.call('user_name', img.user, function (err, res) {
-        if (!err) {
-          Session.set('user_name', res.email);
-          Session.set('user_banned', res.banned);
-        } else console.error(err);
-      });
-  }
-});
+// Template.image.onRendered(function () {
+//   const instance = this;
+//   // console.info('Template.image.rendered', this);
+//   instance.autorun(function imageRenderedAutorun(){
+//     var params = FlowRouter.current().params;
+//     if (Roles.userIsInRole(Meteor.userId(), 'admin')) {
+//       console.log(`imageRenderedAutorun`)
+//       var img = DBImages.findOne({ _id: params.id });
+//       if (img)
+//         Meteor.call('user_name', img.user, function (err, res) {
+//           if (!err) {
+//             Session.set('user_name', res.email);
+//             Session.set('user_banned', res.banned);
+//             console.log(`imageRenderedAutorun ${res.email}`);
+//           } else console.error(err);
+//         });
+//     }
+//   })
+// });
 Template.image.helpers({
   allowed(){
     const img = DBImages.findOne(this._id);
