@@ -2,6 +2,7 @@ import './tags.html';
 import './tagit';
 Template.tags.onCreated(function () {
   const instance = this;
+  instance.doAutorun = true;
   // console.log(`${instance.view.name}.onCreated`, instance.data);
 });
 Template.tags.onRendered(function () {
@@ -29,7 +30,7 @@ Template.tags.onRendered(function () {
     existingEffect: 'shake',
     autocomplete: {
       delay: 0,
-      minLength: 2,
+      minLength: 1,
       // autoFocus: true,
       source(request, callback) {
         Meteor.call('tags', request.term, (err, tags) => {
@@ -78,7 +79,9 @@ Template.tags.onRendered(function () {
         tags.push(ui.tagLabel);
         ImageStart = 0;
         Session.set('imageStart', 0);
+        instance.doAutorun = false;
         TagSearch.set(tags);
+        instance.doAutorun = true;
       }
     };
     options.afterTagRemoved = function (event, ui) {
@@ -86,14 +89,21 @@ Template.tags.onRendered(function () {
         let tags = TagSearch.get();
         ImageStart = 0;
         Session.set('imageStart', 0);
+        instance.doAutorun = false;
         TagSearch.set(tags.filter((tag) => { return ui.tagLabel != tag }));
+        instance.doAutorun = true;
       }
     };
   } else {
     //
     // only let logged-in users tag
     //
-    options.readOnly = userId == null || userId == undefined;
+    if(userId && userId == instance.data.img.user) {
+      options.readOnly = false;
+    } else {
+      options.readOnly = true;
+    }
+    // options.readOnly = userId == null || userId == undefined;
     //
     // add a clicked tag to the search
     //
@@ -140,14 +150,30 @@ Template.tags.onRendered(function () {
   //
   // render the search tags
   //
-  if (instance.data.tagged) {
-    useHook = false;
-    instance.data.tagged.forEach(function (tag) {
-      // console.log(`createTag ${tag}`)
-      instance.$("#myTags").tagit("createTag", tag);
-    });
-    useHook = true;
-  }
+  if (instance.data.search)
+    instance.autorun(function tagitTagSearch() {
+      const tagged = TagSearch.get();
+      if (instance.doAutorun && tagged.length>0) {
+        const existing = instance.$("#myTags").tagit('assignedTags');
+        // console.log(`tagitTagSearch`, tagged, existing);
+        useHook = false;
+        tagged.forEach(function (tag) {
+          // console.log(`createTag ${tag}`)
+          if(existing.indexOf(tag)<0)
+            instance.$("#myTags").tagit("createTag", tag);
+        });
+        useHook = true;
+      }
+    })
+
+  // if (instance.data.tagged) {
+  //   useHook = false;
+  //   instance.data.tagged.forEach(function (tag) {
+  //     // console.log(`createTag ${tag}`)
+  //     instance.$("#myTags").tagit("createTag", tag);
+  //   });
+  //   useHook = true;
+  // }
 
   let input = instance.findAll('.ui-autocomplete-input');
   if (input.length > 0) {
