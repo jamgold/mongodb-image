@@ -196,11 +196,7 @@ Meteor.methods({
     }
   },
   imageCount: function(tags) {
-    let query = { thumbnail: { $exists: 1 } };
-    if (tags !== undefined && tags.length > 0) {
-      query['tags'] = { $all: tags };
-      if (tags[0] == 'missing') query['tags'] = { $exists: 0 };
-    }
+    let query = createQuery({ thumbnail: { $exists: 1 } }, tags);
     return DBImages.find(query).count();
   },
   imageExists: function(md5hash) {

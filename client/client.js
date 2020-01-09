@@ -416,8 +416,6 @@ Tracker.autorun(function imageCountAutorun() {
   Meteor.call('imageCount', tags, function(err,count){
     if(!err) {
       Session.set('imageCount', count);
-      // Session.set('imageStart',0);
-      // ImageStart = 0;
     }
   });
 });
