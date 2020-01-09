@@ -75,25 +75,14 @@ Template.image.onCreated(function () {
       }
       TagsImgId = params.id;
     });
+    Session.set('navbarUrl',`/#${params.id}`);
   });
 });
 // Template.image.onRendered(function () {
 //   const instance = this;
-//   // console.info('Template.image.rendered', this);
+//   console.info('Template.image.rendered', this);
 //   instance.autorun(function imageRenderedAutorun(){
 //     var params = FlowRouter.current().params;
-//     if (Roles.userIsInRole(Meteor.userId(), 'admin')) {
-//       console.log(`imageRenderedAutorun`)
-//       var img = DBImages.findOne({ _id: params.id });
-//       if (img)
-//         Meteor.call('user_name', img.user, function (err, res) {
-//           if (!err) {
-//             Session.set('user_name', res.email);
-//             Session.set('user_banned', res.banned);
-//             console.log(`imageRenderedAutorun ${res.email}`);
-//           } else console.error(err);
-//         });
-//     }
 //   })
 // });
 Template.image.helpers({

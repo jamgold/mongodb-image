@@ -2,6 +2,7 @@ import '/imports/lib/routes.js';
 import '/imports/client/tags.js';
 import '/imports/client/private.js';
 import '/imports/client/upload';
+import 'hammerjs';
 import 'bootstrap/dist/js/bootstrap.min.js';
 import 'bootstrap/dist/css/bootstrap.min.css';
 // import 'glyphicons-only-bootstrap/css/bootstrap.css';
@@ -22,6 +23,7 @@ AcceptedFileTypes = {"image/png":true,"image/jpeg":true,"image/jpg":true,"image/
 Session.setDefault('uploaded', 0);
 Session.setDefault('imageStart', 0);
 Session.setDefault('imageCount', 0);
+Session.setDefault('navbarUrl', '/');
 Session.setDefault('src', new Date());
 
 ThumbnailsHandle = null;
@@ -78,13 +80,55 @@ Template.registerHelper('cssclasses',function(){
   return this.cssclasses ? this.cssclasses : '';
 });
 
+Template.body.onRendered(function(){
+  const template = this;
+  const body = document.getElementsByTagName('body')[0];
+  template.hammer = new Hammer(body);
+  template.hammer.get('swipe').set({
+    enable: true,
+    threshold: 5,
+    velocity: 0.1,
+    direction: Hammer.DIRECTION_HORIZONTAL,
+  });
+  template.hammer
+    .on('swipeleft', (e) => {
+      const next = document.querySelector('a.next');
+      if(next) {
+        next.click();
+      } else {
+        const current = document.querySelector('.pagination .active');
+        if (current) {
+          const start = parseInt(current.dataset.start);
+          const page = document.querySelector(`.pagination li a[data-start="${start + 18}"]`);
+          if(page) page.click();
+        }
+      }
+      // alert('swipeleft ' + current.dataset.start);
+    })
+    .on('swiperight', (e) => {
+      const prev = document.querySelector('a.prev');
+      if (prev) {
+        prev.click();
+      } else {
+        const current = document.querySelector('.pagination .active');
+        if (current) {
+          const start = parseInt(current.dataset.start);
+          if (start > 0) {
+            const page = document.querySelector(`.pagination li a[data-start="${start - 18}"]`);
+            if(page) page.click();
+          }
+        }
+      }
+      // alert('swiperight '+current.dataset.start);
+    })
+  window.hammertime = template.hammer;
+  // console.log(`${template.view.name}.onRendered`, body);
+});
+
 Template.bootstrap.helpers({
   alerts(){
     return Bootstrap3boilerplate.__alert.get();
   },
-  showButton(){
-
-  }
 });
 Template.bootstrap.events({
   'click button'(event, instance){
@@ -144,7 +188,7 @@ Template.thumbnails.onRendered(function(){
     ImageStart = parseInt(ImageStart);
     // console.log(`${template.view.name}.onCreated.autorun ImageStart=${ImageStart}`);
     var counter = Session.get('imageCount');
-    var pages = [];
+    var pages = [];//['<a class="page-link" href="#" aria-label="Previous"><span aria-hidden="true" >&laquo;</span> <a>'];
     var page = 1;
     const number = ImagesPerPage;
     template.$('.pagination li').removeClass('active');
@@ -160,9 +204,10 @@ Template.thumbnails.onRendered(function(){
       })
       page++;
     }
+    // pages.push('<li class="page-item"><a class="page-link" href="#" aria-label="Next"><span aria-hidden="true">&raquo;</span></a></li>');
     template.pages.set(pages);
     template.$(`li[data-start="${ImageStart}"]`).addClass('active');
-  })
+  });
 });
 Template.thumbnails.onDestroyed(function() {
   var template = this;
@@ -173,7 +218,7 @@ Template.thumbnails.onDestroyed(function() {
 Template.thumbnails.helpers({
   pages() {
     const pages = Template.instance().pages.get();
-    // console.log('pages', pages)
+    // console.log(`pages ${pages.length}`);
     return pages;
   },
   // helper to get all the thumbnails only called ONCE, even when the subscription for DBImages changes
@@ -202,16 +247,62 @@ Template.thumbnails.helpers({
   }
 });
 Template.thumbnails.events({
-  'click .pagination li a'(e,t) {
+  'click .pagination li a.page'(e,t) {
     // console.log('click .pagination li a');
     t.$('.pagination li').removeClass('active');
     ImageStart = parseInt(e.currentTarget.dataset.start);
     e.currentTarget.parentNode.classList.add('active');
     Session.set('imageStart', ImageStart);
   },
+  'click .prev'(e,t){
+    const current = document.querySelector('.pagination li.active');
+    if(current) {
+      const start = parseInt(current.dataset.start);
+      if(start>0) {
+        const page = document.querySelector(`.pagination li a[data-start="${start - 18}"]`);
+        if (page) page.click();
+      }
+    }
+  },
+  'click .next'(e,t) {
+    const current = document.querySelector('.pagination li.active');
+    if (current) {
+      const start = parseInt(current.dataset.start);
+      // if (start > 0) {
+        const page = document.querySelector(`.pagination li a[data-start="${start + 18}"]`);
+        if (page) page.click();
+      // }
+    }
+  },
   // 'click .uploadModal'(e,t) {
   //   Bootstrap3boilerplate.Modal.show();
   // },
+});
+
+Template.thumbnails_data.onRendered(function(){
+  const instance = this;
+  const hash = Session.get('navbarUrl').replace('/#','');//window.location.hash.replace('#', '');
+  if(hash) {
+    Meteor.setTimeout(function(){
+      const img = instance.find(`img[imageid="${hash}"]`);
+      if(img){
+        const top = img.getBoundingClientRect().top;
+        if (top) {
+          // console.log(`${instance.view.name}.onRendered ${hash} ${top}`);
+          window.scrollTo(0, top - 60);
+        }
+      }
+    },500)
+  } else {
+    console.log(`${instance.view.name}.onRendered no hash ${window.location.hash}`);
+  }
+});
+
+Template.pagination.helpers({
+  showPrevNext(){
+    const pages = Template.currentData().pages;
+    return pages && pages.length>1;
+  },
 });
 
 Template.thumbnail.onRendered(function(){
@@ -236,6 +327,7 @@ Template.thumbnail.events({
       // console.log(`adding ${tag} to ${tags}`);
       tags.push(tag);
       TagSearch.set(tags);
+      Session.set('imageStart', 0);
     }
   },
 });
@@ -247,6 +339,7 @@ Template.bs_navbar.onCreated(function(){
 Template.bs_navbar.onRendered(function(){
   const instance = this;
   // console.log(`${instance.view.name}.onRendered`);
+  instance.navbar = instance.find('#navbarsExampleDefault');
   instance.autorun(function(){
     FlowRouter.watchPathChange();
     const c = FlowRouter.current();
@@ -273,11 +366,15 @@ Template.bs_navbar.helpers({
       result.imgid = img._id;
       result.links.push(`<a class="nav-link conditional" data-toggle="collapse" data-target="#imageInfo" data-id="${img._id}" href="/image/${img._id}">Info</a>`)
       if(img.user == userId || Roles.userIsInRole(userId, 'admin')){
-        result.links.push(`<a class="nav-link conditional" href="/crop/${img._id}">Crop</a>`);
+        const cropped = img.details != 'undefined' ? '<span class="glyphicon glyphicon-ok" title="image thumbnail cropped"></span>':'';
+        result.links.push(`<a class="nav-link conditional" href="/crop/${img._id}">Crop ${cropped}</a>`);
         result.links.push(`<a class="nav-link conditional btn btn-outline-danger delete" id="${img._id}">Delete</a>`)
       }
     }
     return result;
+  },
+  url(){
+    return Session.get('navbarUrl');
   },
 });
 Template.bs_navbar.events({
@@ -298,8 +395,11 @@ Template.bs_navbar.events({
   },
   'click a[data-target="#imageInfo"]'(event, instance){
     FlowRouter.go(`/image/${event.currentTarget.dataset.id}`);
-  }
-})
+  },
+  'click a'(event, instance){
+    instance.navbar.classList.remove('show');
+  },
+});
 
 Tracker.autorun(function subscribeThumbnails() {
   Template.thumbnails.numberofimages = 0;

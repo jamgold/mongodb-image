@@ -173,6 +173,7 @@ a.carousel.prev {
 	top:10px;
 	border-radius: 5px;
 	background:red;
+	width: 2em;
 	padding:1px 5px;
 }
 .missing-tags {
@@ -181,12 +182,22 @@ a.carousel.prev {
 	border-radius: 5px;
 	padding:1px 5px;
 }
+.image-cropped {
+	top:10px;
+	left:10px;
+	color: white;
+	padding:2px 5px;
+	border-radius: 5px;
+	width: 2em;
+	background-color: green;
+}
 .present-tags {
 	bottom: 10px;
 	text-align: right;
 }
 .present-tags .tag {
-	background: green;
+	/* background: green; */
+	background-color: #007bff;
 	padding:2px 5px;
 	border-radius: 5px;
 	text-decoration: none;
@@ -204,6 +215,9 @@ a.carousel.prev {
 
 @media (max-device-width : 440px) 
 {
+	span.private-image, a.tag {
+		font-size: 2em;
+	}
 	.modal-dialog {
 		margin: 0 auto;
 		width: 70%;
@@ -222,9 +236,6 @@ a.carousel.prev {
 	}
 	*/
 	.navbar-default {
-		font-size: 3em;
-	}
-	.pagination, .well {
 		font-size: 3em;
 	}
 	
