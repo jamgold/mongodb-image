@@ -2,13 +2,22 @@ import { HTTP } from 'meteor/http';
 import { check } from 'meteor/check';
 import '/imports/server/rest';
 
+const createQuery = function(query, tags) {
+  if (tags !== undefined && tags.length > 0) {
+    if (tags[0] == 'uncropped') {
+      query['details'] = { $exists: 0 };
+    } else {
+      query['tags'] = { $all: tags };
+      if (tags[0] == 'missing') query['tags'] = { $exists: 0 };
+    }
+  }
+  return query;
+};
+
 Meteor.publish('thumbnails', function(imageStart, tags){
   const self = this;
-  let query = {thumbnail:{$exists:1},$or:[{private:{$exists:0}},{private:{$in:[this.userId]}},{user:self.userId}]};
-  if(tags !== undefined) {
-    if(tags.length>0) query['tags'] = {$all: tags};
-    if (tags[0] == 'missing') query['tags'] = { $exists: 0 };
-  }
+  let query = createQuery({thumbnail:{$exists:1},$or:[{private:{$exists:0}},{private:{$in:[this.userId]}},{user:self.userId}]}, tags);
+  // console.log(EJSON.stringify(query));
   imageStart = imageStart == undefined ? 0 : imageStart;
   // console.info('thumbnails start:'+ imageStart+' subscriptionId:'+self._subscriptionId);
   var cursor = DBImages.find(query,{
@@ -130,11 +139,7 @@ Meteor.methods({
   nextImage(order, tags, userId){
     const self = this;
     if (userId == undefined) userId = self.userId;
-    let query = { order: { $lt: order }, $or: [{ private: { $exists: 0 } }, { private: { $in: [userId] } }, { user: self.userId }] };
-    if(tags != undefined && tags.length>0){
-      query['tags'] = { $all: tags };
-      if (tags[0] == 'missing') query['tags'] = { $exists: 0 };
-    }
+    let query = createQuery({ order: { $lt: order }, $or: [{ private: { $exists: 0 } }, { private: { $in: [userId] } }, { user: self.userId }] }, tags) ;
     let images = DBImages.find(query,{sort:{order:-1},limit:1}).fetch()
     // console.log(`nextImage ${order} ${images.length}`, tags);
     if(images.length>0) return images[0]._id;else return null;
@@ -142,11 +147,7 @@ Meteor.methods({
   prevImage(order, tags, userId){
     const self = this;
     if(userId==undefined) userId = self.userId;
-    let query = { order: { $gt: order }, $or: [{ private: { $exists: 0 } }, { private: { $in: [userId] } }, { user: self.userId }]};
-    if (tags != undefined && tags.length > 0) {
-      query['tags'] = { $all: tags };
-      if (tags[0] == 'missing') query['tags'] = { $exists: 0 };
-    }
+    let query = createQuery({ order: { $gt: order }, $or: [{ private: { $exists: 0 } }, { private: { $in: [userId] } }, { user: self.userId }]}, tags);
     let images =  DBImages.find(query,{sort:{order:1},limit:1}).fetch();
     // console.log(`prevImage ${order} ${images.length}`, tags);
     if(images.length>0) return images[0]._id;else return null;

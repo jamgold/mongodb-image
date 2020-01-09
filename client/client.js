@@ -366,7 +366,8 @@ Template.bs_navbar.helpers({
       result.imgid = img._id;
       result.links.push(`<a class="nav-link conditional" data-toggle="collapse" data-target="#imageInfo" data-id="${img._id}" href="/image/${img._id}">Info</a>`)
       if(img.user == userId || Roles.userIsInRole(userId, 'admin')){
-        const cropped = img.details != 'undefined' ? '<span class="glyphicon glyphicon-ok" title="image thumbnail cropped"></span>':'';
+        const cropped = img.details == undefined ? '<span class="glyphicon glyphicon-resize-small"></span>' : '<span class="glyphicon glyphicon-ok" title="image thumbnail cropped"></span>';
+        // console.log(img);
         result.links.push(`<a class="nav-link conditional" href="/crop/${img._id}">Crop ${cropped}</a>`);
         result.links.push(`<a class="nav-link conditional btn btn-outline-danger delete" id="${img._id}">Delete</a>`)
       }
