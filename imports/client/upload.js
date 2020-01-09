@@ -191,10 +191,21 @@ Template.upload.events({
           console.error(err);
           Bootstrap3boilerplate.alert('danger', `Image ${err.message} has been uploaded before`, true);
         } else {
+          const md5hash = md5(file.data);
           template.file = file;
-          template.crop_img.src = file.data;
-          template.md5hash = md5(file.data);
-          url.value = '';
+
+          Meteor.call('imageExists', md5hash, function imageExits(err, exists) {
+            if (exists) {
+              Bootstrap3boilerplate.alert('danger', `Image ${template.file.name} has been uploaded before`, true);
+              template.processNext();
+            } else {
+              // set crop_img.src so crop_img.onload fires which creates the thumbnail
+              // https://developer.mozilla.org/en-US/docs/Using_files_from_web_applications
+              template.crop_img.src = file.data;
+              template.md5hash = md5hash;
+              url.value = '';
+            }
+          });
         }
       });
     } else {
