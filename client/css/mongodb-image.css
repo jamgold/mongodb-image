@@ -189,7 +189,10 @@ a.carousel.prev {
 	padding:2px 5px;
 	border-radius: 5px;
 	width: 2em;
-	background-color: green;
+	background-color: red;
+}
+.image-cropped a {
+	color: white;
 }
 .present-tags {
 	bottom: 10px;

@@ -115,11 +115,11 @@
 				{{/each}}
 				</span>
 			{{/unless}}
-			{{#if details}}
+			{{#unless details}}
 				<span class="image-badge image-cropped ">
-					<span class="glyphicon glyphicon-ok" title="image thumbnail cropped"></span>
+					<a href="/crop/{{_id}}"><span class="glyphicon glyphicon-resize-small" title="image thumbnail not cropped"></span></a>
 				</span>
-			{{/if}}
+			{{/unless}}
 		{{else}}
 			{{#if tags}}
 				<span class="image-badge present-tags">

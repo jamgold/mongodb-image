@@ -46,17 +46,21 @@ Template.croppie.onRendered(function(){
   // console.log(`${instance.view.name}.onRendered`, instance.data);
 
   instance.croppie = new Croppie(instance.image, {
+    // The inner container of the coppie. The visible part of the image
     viewport: { width: 200, height: 200 },
+    // The outer container of the cropper
     boundary: { width: 500, height: 500 },
     showZoomer: true,
     enableResize: false,
     enableOrientation: true,
-    endforceBoundary: true,
+    // Restricts zoom so image cannot be smaller than viewport
+    endforceBoundary: false,
     // https://github.com/Foliotek/Croppie/issues/536#issuecomment-519640639
+    // A class of your choosing to add to the container to add custom styles to your croppie
     customClass: 'croppieUpdate'
     // mouseWheelZoom: 'ctrl'
   });
-
+  window.croppie = instance.croppie;
   instance.image.addEventListener('load', function (ev) {
     // const img = instance.img.get();
     // console.log(`image loaded`, instance.details);
@@ -86,7 +90,7 @@ Template.croppie.onDestroyed(function(){
 Template.croppie.helpers({
 });
 Template.croppie.events({
-  'click button.result': async function (event, instance) {
+  'click button.save': async function (event, instance) {
     const image = await instance.croppie.result();
     instance.cropped.src = image;
     DBImages.update(instance.data.id, {
@@ -95,7 +99,14 @@ Template.croppie.events({
         details: instance.details,
       }
     });
-    FlowRouter.go(`/image/${instance.data.id}`);
+    if(event.currentTarget.classList.contains('list')){
+      FlowRouter.go(`/`);
+    } else {
+      FlowRouter.go(`/image/${instance.data.id}`);
+    }
+  },
+  'click button.zoom'(event, instance) {
+    instance.croppie.setZoom(0);
   },
   'update.croppie .croppieUpdate': async function (event, instance) {
     // console.log(event.originalEvent.detail);
