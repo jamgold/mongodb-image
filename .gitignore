@@ -3,3 +3,4 @@ node_modules
 meteor.env
 .meteor
 .vscode
+.env
