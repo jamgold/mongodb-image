@@ -75,3 +75,42 @@ WebApp.connectHandlers.use('/api/json/image', (request, response, next) => {
       break;
   }
 });
+WebApp.connectHandlers.use('/download', async function(request, response, next){
+  switch (request.method) {
+    case 'GET':
+      const id = request.url.split('/').pop();
+      if (id) {
+        const img = DBImages.findOne(id);
+        if (img) {
+          if (img && img.private) {
+            const message = 'This image is private';
+            response.writeHead(403);
+            response.end(message);
+          } else {
+            // replace the data:...;base64, crap
+            const base64 = img.src.replace(/^data:.*;base64,/, "");
+            // create a buffer from the data
+            const buff = Buffer.from(base64, 'base64');
+            const ext = img.type.split('/').pop();
+
+            response.writeHead(200, {
+              'Content-Length': buff.length,
+              'Content-Type': img.type,
+              'Content-Transfer-Encoding':'binary',
+              'Content-Disposition': `attachement; filename = "${id}.${ext}"`,
+            });
+            // Content-Disposition: attachement forces the browser to download
+            // HTTP response.end takes a buffer as argument !!!!
+            response.end(buff,'utf8');
+          }
+        } else {
+          response.writeHead(404);
+          response.end(`image with id ${id} not found`);
+        }
+      } else {
+        response.writeHead(500);
+        response.end('Please provide the image id');
+      }
+      break;
+  }
+});
