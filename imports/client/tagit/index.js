@@ -23,6 +23,9 @@ Template.tagit.onCreated(function () {
       instance.options = instance.data.options;
     }
   }
+  if(instance.data.title) {
+    instance.options.placeholderText = instance.data.title;
+  }
 });
 Template.tagit.onRendered(function () {
   const instance = this;
