@@ -4,7 +4,9 @@ import '/imports/server/rest';
 
 const createQuery = function(query, tags) {
   if (tags !== undefined && tags.length > 0) {
-    if (tags[0] == 'uncropped') {
+    if(tags[0] == 'cssclasses') {
+      query['cssclasses'] = {$exists:1}
+    }else if (tags[0] == 'uncropped') {
       query['details'] = { $exists: 0 };
     } else {
       query['tags'] = { $all: tags };
@@ -46,7 +48,7 @@ Meteor.publish('image',function(id) {
   return [ images, users ];
 });
 
-Meteor.publish('user_images', function(skip,user){
+Meteor.publish('user_images', function(skip,user,tags){
   var self = this;
   // check(skip, Integer);
   // check(user, String);
@@ -57,10 +59,9 @@ Meteor.publish('user_images', function(skip,user){
   // only adds the new subscriptionId to images not yet in the 
   // publication
   //
-  return DBImages.find({
-    user: user
-    // thumbnail:{$exists:1}
-  },{
+  const query = createQuery({ user: user }, tags);
+  
+  return DBImages.find(query,{
     limit: 18,
     skip: skip,
     fields: {src:0},
@@ -195,8 +196,11 @@ Meteor.methods({
       }
     }
   },
-  imageCount: function(tags) {
-    let query = createQuery({ thumbnail: { $exists: 1 } }, tags);
+  imageCount: function(tags,userId) {
+    const query = userId != undefined
+      ? createQuery({user: userId, thumbnail: { $exists: 1 } }, tags)
+      : createQuery({ thumbnail: { $exists: 1 } }, tags)
+    ;
     return DBImages.find(query).count();
   },
   imageExists: function(md5hash) {
