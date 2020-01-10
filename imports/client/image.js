@@ -78,13 +78,9 @@ Template.image.onCreated(function () {
     Session.set('navbarUrl',`/#${params.id}`);
   });
 });
-// Template.image.onRendered(function () {
-//   const instance = this;
-//   console.info('Template.image.rendered', this);
-//   instance.autorun(function imageRenderedAutorun(){
-//     var params = FlowRouter.current().params;
-//   })
-// });
+Template.image.onRendered(function () {
+  const instance = this;
+});
 Template.image.helpers({
   allowed(){
     const img = DBImages.findOne(this._id);
@@ -94,6 +90,7 @@ Template.image.helpers({
       // console.log(`allowed`, img.private);
       allowed = img.user == userId || img.private.indexOf(userId)>=0;
     }
+    // if(img) console.log(`${img._id} ${allowed}`);
     return allowed;
   },
   imgId() {
@@ -220,6 +217,7 @@ Template.image_info.events({
     DBImages.update(id, { $set: { cssclasses: c.value } }, function (r) {
       // t.$('.fullscreen').removeClass(old).addClass(c.value);
       t.data.cssclasses.set(c.value);
+      console.log(`updated ${id} with cssclass=${c.value}`);
     })
   },
   // 'click .delete': function (e, t) {

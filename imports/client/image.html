@@ -16,8 +16,9 @@
 						size=size
 						type=type
 						user_banned=user_banned
+						allowed=allowed
 					}}
-					<button  class="btn btn-default" data-toggle="collapse" data-target="#imageInfo"> Close </button>
+					<button  class="btn btn-dark" data-toggle="collapse" data-target="#imageInfo"> Close </button>
 				</div>
 			</div>
 			{{#if prev}}
@@ -39,60 +40,6 @@
 				{{else}}
 					<h1>Access Denied</h1>
 				{{/if}}
-				{{#if commentOut}}
-				<div class="image type">
-					<label class="radio-inline">
-						<input type="radio" name="image-type" id="image-type"
-						data-image-id="{{_id}}" value="cover" {{imageType 'cover'}}> Cover
-					</label>
-					<label class="radio-inline">
-						<input type="radio" name="image-type" id="image-type"
-						data-image-id="{{_id}}" value="width" {{imageType 'width'}}> 100% Width
-					</label>
-					<label class="radio-inline">
-						<input type="radio" name="image-type" id="image-type"
-						data-image-id="{{_id}}" value="height" {{imageType 'height'}}> 100% Height
-					</label>
-					<button
-						class="btn btn-default"
-						data-toggle="collapse"
-						data-backdrop="false"
-						data-target="#imageInfo"
-					>Info</button>
-				</div>
-				<div class="image buttons">
-					{{#if canDelete user}}
-					<label class="radio-inline">
-						<input
-							type="radio"
-							name="cssclasses"
-							id="cssclasses"
-							data-image-id="{{_id}}"
-							value=""
-							{{active}}
-						/>
-						None
-					</label>
-					<label class="radio-inline">
-						<input type="radio" name="cssclasses" id="cssclasses"
-						data-image-id="{{_id}}" value="transform90" {{active 'transform90'}}> 90
-					</label>
-					<label class="radio-inline">
-						<input type="radio" name="cssclasses" id="cssclasses"
-						data-image-id="{{_id}}" value="transform180" {{active 'transform180'}}>
-						180
-					</label>
-					<label class="radio-inline">
-						<input type="radio" name="cssclasses" id="cssclasses"
-						data-image-id="{{_id}}" value="transform270" {{active 'transform270'}}>
-						270
-					</label>
-					<a class="btn btn-success crop btn-xl" href="/crop/{{_id}}">Crop</a>
-					<a class="btn btn-danger delete btn-xl" href="/" id="{{_id}}">Delete</a>
-					{{/if}}
-					<a class="btn btn-default btn-xl back" href="/">Back</a>
-				</div>
-				{{/if}}
 				{{md5hash}}
 			{{else}}
 				Loading dataURI ... 
@@ -106,7 +53,9 @@
 <template name="image_info">
 	<h5 class="card-title">Image Data</h5>
   <ul>
-    <li><a target="_new" href="{{img.src.get}}">{{img.name}}</a></li>
+		{{#if allowed}}
+		<li><a target="_new" href="/download/{{img._id}}">{{img.name}}</a></li>
+		{{/if}}
     <li>size {{size}} bytes</li>
     <li>mime-type {{type}}</li>
     {{#if isInRole 'admin'}}
@@ -140,7 +89,7 @@
 				type="radio"
 				name="cssclasses"
 				id="cssclasses"
-				data-image-id="{{_id}}"
+				data-image-id="{{img._id}}"
 				value=""
 				{{active}}
 			/>
@@ -148,16 +97,16 @@
 		</label>
 		<label class="radio-inline">
 			<input type="radio" name="cssclasses" id="cssclasses"
-			data-image-id="{{_id}}" value="transform90" {{active 'transform90'}}> 90
+			data-image-id="{{img._id}}" value="transform90" {{active 'transform90'}}> 90
 		</label>
 		<label class="radio-inline">
 			<input type="radio" name="cssclasses" id="cssclasses"
-			data-image-id="{{_id}}" value="transform180" {{active 'transform180'}}>
+			data-image-id="{{img._id}}" value="transform180" {{active 'transform180'}}>
 			180
 		</label>
 		<label class="radio-inline">
 			<input type="radio" name="cssclasses" id="cssclasses"
-			data-image-id="{{_id}}" value="transform270" {{active 'transform270'}}>
+			data-image-id="{{img._id}}" value="transform270" {{active 'transform270'}}>
 			270
 		</label>
 		<!-- <a class="btn btn-success crop btn-xl" href="/crop/{{img._id}}">Crop</a> -->
