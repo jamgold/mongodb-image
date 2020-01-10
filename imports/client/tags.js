@@ -65,7 +65,7 @@ Template.tags.onRendered(function () {
       var valid = true;
       if(useHook){
         const tagit = instance.$(this).data('uiTagit');
-        valid = ['missing','uncropped'].indexOf(ui.tagLabel) >=0 || instance.validTags.indexOf(ui.tagLabel) >= 0;
+        valid = ['missing','uncropped','cssclasses'].indexOf(ui.tagLabel) >=0 || instance.validTags.indexOf(ui.tagLabel) >= 0;
         if (!valid) tagit.tagInput.val('');
       }
       return valid;
