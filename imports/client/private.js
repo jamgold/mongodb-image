@@ -49,7 +49,7 @@ Template.private.onRendered(function(){
   let userId = Meteor.userId();
   // console.info(`${instance.view.name}.onRendered`,instance.data);
   const options = {
-    placeholderText: 'Add users for which this is private',
+    placeholderText: 'Add users for who this image is private',
     // defaultClasses: 'bootstrap label label-primary tagit-choice ui-corner-all',
     defaultClasses: 'bootstrap badge badge-primary tagit-choice ui-corner-all',
     allowDuplicates: false,
