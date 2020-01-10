@@ -70,16 +70,25 @@ Template.croppie.onRendered(function(){
       if (img) {
         // console.log(`${instance.view.name}.onCreated subscribed`)
         details = img.details ? img.details : {};
+        details.src = img.thumbnail;
       }
-      Meteor.call('src', instance.data.id, null, function (err, res) {
-        if (err) {
-          console.log(err);
-        } else {
-          details.url = res.src;
-          // console.log(`${instance.view.name}.onRendered src`, details);
-          instance.croppie.bind(details);
-        }
-      });
+      //
+      // always load original into croppie, possible problem with cssclasses
+      //
+      if(true){
+        Meteor.call('src', instance.data.id, null, function (err, res) {
+          if (err) {
+            console.log(err);
+          } else {
+            details.url = res.src;
+            // console.log(`${instance.view.name}.onRendered src`, details);
+            instance.croppie.bind(details);
+          }
+        });
+      }else{
+        console.log(details);
+        instance.croppie.bind(details);
+      }
     }, 100)
   });
 });
@@ -98,10 +107,13 @@ Template.croppie.events({
         thumbnail: image,
         details: instance.details,
       }
+    }, (err, u) => {
+        if (err) Bootstrap3boilerplate.alert('danger', `update image failed with ${err.message}`, true);
+        // else Bootstrap3boilerplate.alert('info', `updated thumbnail ${u}`, true);
     });
     if(event.currentTarget.classList.contains('list')){
       FlowRouter.go(`/`);
-    } else {
+    } else if (event.currentTarget.classList.contains('image')) {
       FlowRouter.go(`/image/${instance.data.id}`);
     }
   },
@@ -113,5 +125,10 @@ Template.croppie.events({
     instance.details = event.originalEvent.detail;
     const image = await instance.croppie.result();
     instance.cropped.src = image;
+  },
+  'click button.rotate': async function(event, instance){
+    const angle = parseInt(event.currentTarget.innerHTML);
+    // console.log(angle);
+    await instance.croppie.rotate(angle)
   },
 });
