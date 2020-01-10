@@ -255,84 +255,83 @@ Template.upload.events({
   }
 });
 Template.upload.helpers({
-  privateOptions(){
+  options(type){
     const instance = Template.instance();
-    return {
-      placeholderText: 'Add users for which this is private',
-      // defaultClasses: 'bootstrap label label-primary tagit-choice ui-corner-all',
-      defaultClasses: 'bootstrap badge badge-primary tagit-choice ui-corner-all',
-      allowDuplicates: false,
-      allowSpaces: false,
-      caseSensitive: false,
-      existingEffect: 'shake',
-      readOnly: false,
-      tagLimit: null,
-      singleField: true,
-      // fieldName: 'tag',
-      appendTo: '#uploadModal',
-      // availableTags: instance.data.users.map((u) => {return u.email}),
-      autocomplete: {
-        delay: 0,
-        minLength: 2,
-        autoFocus: true,
-        source(request, callback) {
-          Meteor.call('users', request.term, (err, users) => {
-            if (err) console.error(err);
-            else {
-              instance.validUsers = users;
-              callback(users);
-            }
-          });
-          // console.log(request.term, instance.users)
-          // var options = instance.users
-          //   .filter((u) => { return u.email.match(request.term) })
-          //   .map((u) => { return { label: u.email, value: u.id } })
-          // callback(options);
+    const options = {
+      private: {
+          // defaultClasses: 'bootstrap label label-primary tagit-choice ui-corner-all',
+          defaultClasses: 'bootstrap badge badge-primary tagit-choice ui-corner-all',
+          allowDuplicates: false,
+          allowSpaces: false,
+          caseSensitive: false,
+          existingEffect: 'shake',
+          readOnly: false,
+          tagLimit: null,
+          singleField: true,
+          // fieldName: 'tag',
+          appendTo: '#uploadModal',
+          // availableTags: instance.data.users.map((u) => {return u.email}),
+          autocomplete: {
+            delay: 0,
+            minLength: 2,
+            autoFocus: true,
+            source(request, callback) {
+              Meteor.call('users', request.term, (err, users) => {
+                if (err) console.error(err);
+                else {
+                  instance.validUsers = users;
+                  callback(users);
+                }
+              });
+              // console.log(request.term, instance.users)
+              // var options = instance.users
+              //   .filter((u) => { return u.email.match(request.term) })
+              //   .map((u) => { return { label: u.email, value: u.id } })
+              // callback(options);
+            },
+          },
+          beforeTagAdded(event, ui) {
+            const tagit = instance.$(this).data('uiTagit');
+            const valid = instance.validUser(ui.tagValue);
+            // console.log(`beforeTagAdded ${ui.tagValue}=${valid}`);
+            if (!valid) tagit.tagInput.val('');
+            return valid;
+          },
+      },
+      tags: {
+        allowDuplicates: false,
+        allowSpaces: false,
+        caseSensitive: false,
+        // readOnly: false,
+        tagLimit: null,
+        singleField: true,
+        // fieldName: 'tag',
+        // defaultClasses: 'bootstrap label label-primary tagit-choice ui-corner-all',
+        defaultClasses: 'bootstrap badge badge-primary tagit-choice ui-corner-all',
+        existingEffect: 'shake',
+        appendTo: '#uploadModal .modal-content',
+        autocomplete: {
+          delay: 0,
+          minLength: 2,
+          // autoFocus: true,
+          source(request, callback) {
+            Meteor.call('tags', request.term, (err, tags) => {
+              var options = [];
+              if (err) {
+                console.error(err);
+              } else {
+                // console.log(tags);
+                instance.validTags = tags;
+                // options = tags.map((t) => { return { label: t, value: t } });
+                options = tags;
+              }
+              callback(options);
+            });
+          }
         },
       },
-      beforeTagAdded(event, ui) {
-        const tagit = instance.$(this).data('uiTagit');
-        const valid = instance.validUser(ui.tagValue);
-        // console.log(`beforeTagAdded ${ui.tagValue}=${valid}`);
-        if (!valid) tagit.tagInput.val('');
-        return valid;
-      },
-    };
-  },
-  tagOptions(){
-    const instance = Template.instance();
-    return {
-      placeholderText: 'Enter tags for this image',
-      allowDuplicates: false,
-      allowSpaces: false,
-      caseSensitive: false,
-      // readOnly: false,
-      tagLimit: null,
-      singleField: true,
-      // fieldName: 'tag',
-      // defaultClasses: 'bootstrap label label-primary tagit-choice ui-corner-all',
-      defaultClasses: 'bootstrap badge badge-primary tagit-choice ui-corner-all',
-      existingEffect: 'shake',
-      appendTo: '#uploadModal .modal-content',
-      autocomplete: {
-        delay: 0,
-        minLength: 2,
-        // autoFocus: true,
-        source(request, callback) {
-          Meteor.call('tags', request.term, (err, tags) => {
-            var options = [];
-            if (err) {
-              console.error(err);
-            } else {
-              // console.log(tags);
-              instance.validTags = tags;
-              // options = tags.map((t) => { return { label: t, value: t } });
-              options = tags;
-            }
-            callback(options);
-          });
-        }
-      },
-    };
-  },
-})
+    }
+    // console.log(`options ${type}`, options[type]);
+    return options[type];
+  }
+});

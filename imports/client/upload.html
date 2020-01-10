@@ -1,18 +1,38 @@
 <template name="upload">
 	{{#if currentUser}}
-		<div class="mongodb-image-droppable">
-			<h1>Drag & Drop images or Click</h1>
-			<img class="hidden" style="max-width: 50%" src="/loading.gif">
+		<div class="modal fade" id="uploadModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+		<div class="modal-dialog" role="document">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="exampleModalLabel">Upload</h5>
+					<button  class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					<div class="mongodb-image-droppable">
+						<h1>Drag & Drop images or Click</h1>
+						<img class="hidden" style="max-width: 50%" src="/loading.gif">
+					</div>
+					<input id="fileinput" name="fileinput" multiple="true" type="file" style="display:none;">
+					<h4>or</h4>
+					<div class="input-group">
+						<input type="text" class="form-control" id="image-url" autocomplete="false" placeholder="Enter URL to image">
+						<span class="input-group-btn">
+							<button class="btn btn-success upload-url">Upload</button>
+						</span>
+					</div>
+					<h4>Additional Data (optional)</h4>
+					{{>tagit title="Enter tags for new image(s)" id="new_image_tags" options=(options "tags")}}
+					{{>tagit title="Enter Users for who image(s) is private" id="new_image_users" options=(options "private")}} 
+				</div>
+				<div class="modal-footer">
+					<button  class="btn btn-secondary" data-dismiss="modal">Close</button>
+					<!-- <button  class="btn btn-primary">Save changes</button> -->
+				</div>
+			</div>
 		</div>
-		<input id="fileinput" name="fileinput" multiple="true" type="file" style="display:none;">
-		<div class="input-group">
-			<input type="text" class="form-control" id="image-url" autocomplete="false" placeholder="Enter URL to image">
-			<span class="input-group-btn">
-				<button class="btn btn-default upload-url">Upload</button>
-			</span>
-		</div>
-		{{>tagit title="Enter tags for this image" id="new_image_tags" options=tagOptions}}
-		{{>tagit title="Enter Users" id="new_image_users" options=privateOptions}} 
+	</div>
 	{{else}}
 		<h1>You need to be logged in to upload pictures</h1>
 	{{/if}}
