@@ -3,10 +3,7 @@ import '/imports/client/tags.js';
 import '/imports/client/private.js';
 import '/imports/client/upload';
 import 'hammerjs';
-import 'bootstrap/dist/js/bootstrap.min.js';
-import 'bootstrap/dist/css/bootstrap.min.css';
-// import 'glyphicons-only-bootstrap/css/bootstrap.css';
-import { FlowRouter, RouterHelpers } from 'meteor/ostrio:flow-router-extra';
+import { FlowRouter } from 'meteor/ostrio:flow-router-extra';
 
 if(Meteor.flush == undefined)
 Meteor.flush = function() {
@@ -24,12 +21,16 @@ Session.setDefault('uploaded', 0);
 Session.setDefault('imageStart', 0);
 Session.setDefault('imageCount', 0);
 Session.setDefault('navbarUrl', '/');
+Session.setDefault('TagSearch',[]);
 Session.setDefault('src', new Date());
 
 ThumbnailsHandle = null;
 // AllImageIDs = new ReactiveVar([]);
 Contributors = new ReactiveVar([]);
-TagSearch = new ReactiveVar([]);
+TagSearch = {
+  get(){return Session.get('TagSearch')},
+  set(v){Session.set('TagSearch', v)},
+};//new ReactiveVar([]);
 ImageType = new ReactiveVar('cover');
 TagsImgId = null;
 ImageStart = 0;
@@ -274,6 +275,16 @@ Template.thumbnails.events({
       // }
     }
   },
+  'click span.present-tags .tag'(event, instance) {
+    var tags = TagSearch.get();
+    const tag = event.currentTarget.dataset.tag;
+    if (tags.indexOf(tag < 0)) {
+      // console.log(`adding ${tag} to ${tags}`);
+      tags.push(tag);
+      TagSearch.set(tags);
+      Session.set('imageStart', 0);
+    }
+  },
   // 'click .uploadModal'(e,t) {
   //   Bootstrap3boilerplate.Modal.show();
   // },
@@ -320,86 +331,6 @@ Template.thumbnail.helpers({
   // }
 });
 Template.thumbnail.events({
-  'click span.present-tags .tag'(event, instance){
-    var tags = TagSearch.get();
-    const tag = event.currentTarget.dataset.tag;
-    if(tags.indexOf(tag<0)){
-      // console.log(`adding ${tag} to ${tags}`);
-      tags.push(tag);
-      TagSearch.set(tags);
-      Session.set('imageStart', 0);
-    }
-  },
-});
-
-Template.bs_navbar.onCreated(function(){
-  const instance = this;
-  instance.imgid = '/';
-})
-Template.bs_navbar.onRendered(function(){
-  const instance = this;
-  // console.log(`${instance.view.name}.onRendered`);
-  instance.navbar = instance.find('#navbarsExampleDefault');
-  instance.autorun(function(){
-    FlowRouter.watchPathChange();
-    const c = FlowRouter.current();
-    const s = `a.nav-link[href="${c.path}"]`;
-    instance.$('a.nav-link').removeClass('active');
-    if (['image', 'crop'].indexOf(c.route.name) >= 0)
-      instance.$('a.nav-link.conditional').removeClass('disabled');
-    else
-      instance.$('a.nav-link.conditional').addClass('disabled');
-    var a = instance.$(s).addClass('active').length;
-    // console.log(s,a);
-  })
-})
-Template.bs_navbar.helpers({
-  title(){
-    return `${Session.get('imageCount')} Images`;
-  },
-  imageLinks(){
-    FlowRouter.watchPathChange();
-    const userId = Meteor.userId();
-    const img = DBImages.findOne(FlowRouter.current().params.id);
-    const result = { links: [], imgid: null};
-    if (img) {
-      result.imgid = img._id;
-      result.links.push(`<a class="nav-link conditional" data-toggle="collapse" data-target="#imageInfo" data-id="${img._id}" href="/image/${img._id}">Info</a>`)
-      if(img.user == userId || Roles.userIsInRole(userId, 'admin')){
-        const cropped = img.details == undefined ? '<span class="glyphicon glyphicon-resize-small"></span>' : '<span class="glyphicon glyphicon-ok" title="image thumbnail cropped"></span>';
-        // console.log(img);
-        result.links.push(`<a class="nav-link conditional" href="/crop/${img._id}">Crop ${cropped}</a>`);
-        result.links.push(`<a class="nav-link conditional btn btn-outline-danger delete" id="${img._id}">Delete</a>`)
-      }
-    }
-    return result;
-  },
-  url(){
-    return Session.get('navbarUrl');
-  },
-});
-Template.bs_navbar.events({
-  'click .delete': function (e, t) {
-    const id = e.currentTarget.id;
-    if (confirm(`Really Delete? ${id}`)) {
-      DBImages.remove({ _id: id }, function (err) {
-        if (err) {
-          console.log(err);
-          e.preventDefault();
-        }
-        else {
-          Session.set('uploaded', Session.get('uploaded') - 1);
-          FlowRouter.go('/');
-        }
-      });
-    }
-  },
-  'click a[data-target="#imageInfo"]'(event, instance){
-    FlowRouter.go(`/image/${event.currentTarget.dataset.id}`);
-  },
-  'click a'(event, instance){
-    instance.navbar.classList.remove('show');
-  },
 });
 
 Tracker.autorun(function subscribeThumbnails() {

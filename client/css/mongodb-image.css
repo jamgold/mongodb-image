@@ -7,6 +7,7 @@ ul.ui-autocomplete {
 }
 #myTags, #private {
 	font-size: 100%;
+	overflow: hidden;
 }
 #private {
 	z-index: 0;
@@ -214,6 +215,23 @@ a.carousel.prev {
 	border-radius: 5px;
 	padding: 2px 10px;
 	white-space: nowrap;
+}
+
+.mongodb-image-droppable {
+  background: #aaa;
+  color: #fff;
+  padding: 100px 0;
+  text-align: center;
+  border-radius: 15px;
+  border: 4px dashed #ccc;
+}
+/* .mongodb-image-droppable */
+.dragover {
+  background: #00CC71;
+}
+
+ul.tagit input[type="text"] {
+	min-width: 20em;
 }
 
 @media (max-device-width : 440px) 

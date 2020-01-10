@@ -1,0 +1,66 @@
+<template name='bootstrap'>
+	<LINK REL=StyleSheet HREF="/glyphicons.css" TYPE="text/css" MEDIA=screen>
+	{{>bs_navbar}}
+  <main role="main" class="container">
+		{{#if alerts}}
+			{{#each alerts}}
+				<div class="alert alert-{{type}}" role="alert">
+				{{#if dismiss}}
+				<button data-alertid="{{alertid}}"  class="close" xdata-dismiss="alert">
+					<span data-alertid="{{alertid}}" aria-hidden="true">&times;</span>
+					<span data-alertid="{{alertid}}" class="sr-only">Close</span>
+				</button>
+				{{/if}}
+				{{{text}}}
+				</div>
+			{{/each}}
+		{{/if}}
+
+		<div class="container">
+		{{>yield}}
+		</div>
+  </main>
+</template>
+
+<template name="bs_navbar">
+  <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
+    <a class="navbar-brand" href="{{url}}">{{title}}</a>
+    <button class="navbar-toggler"  data-toggle="collapse" data-target="#navbarsExampleDefault"
+      aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+			<ul class="navbar-nav mr-auto">
+			<!-- <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Disabled</a> -->
+				{{#with imageLinks}}
+					{{#each link in links}}
+						<li class="nav-item">
+							{{{link}}}
+						</li>
+					{{/each}}
+				{{/with}}
+			</ul>
+      <ul class="navbar-nav ml-auto">
+				{{#if currentUser}}
+					{{#if isInRole 'admin'}}
+						<li class="nav-item dropdown">
+							<a class="nav-link dropdown-toggle" href="#" id="navbarAdminDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+								Admin
+							</a>
+							<div class="dropdown-menu" aria-labelledby="navbarAdminDropdown">
+								<a class="dropdown-item" href="/admin/users">Users</a>
+								<a class="dropdown-item" href="/admin/tags">Tags</a>
+								<!-- <div class="dropdown-divider"></div> -->
+								<!-- <a class="dropdown-item" href="#">Something else here</a> -->
+							</div>
+						</li>
+					{{/if}}
+					<li class="nav-item">
+						<a class="nav-link" href="/user/{{currentUser._id}}">My Images</a>
+					</li>
+				{{/if}}
+				{{>loginButtons}}
+			</ul>
+    </div>
+  </nav>
+</template>
