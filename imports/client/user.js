@@ -1,5 +1,6 @@
 import { FlowRouter } from 'meteor/ostrio:flow-router-extra';
 import './user.html';
+import '/imports/client/thumbnails/thumbnail';
 console.log(__filename);
 
 Template.userImages.onCreated(function () {

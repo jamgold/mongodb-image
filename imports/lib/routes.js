@@ -3,11 +3,11 @@ import { FlowRouter, RouterHelpers } from 'meteor/ostrio:flow-router-extra';
 import { LAYOUT } from '/imports/client/bootstrap';
 global.FlowRouter = FlowRouter;
 
-
 FlowRouter.route('/', {
   name: 'thumbnails',
-  title: 'MongoDB Images',
-  action(params) {
+  title: 'Images',
+  async action(params) {
+    import '/imports/client/thumbnails';
     this.render(LAYOUT, "thumbnails", {content: "thumbnails"});
   },
 });

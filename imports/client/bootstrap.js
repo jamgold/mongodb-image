@@ -5,6 +5,19 @@ import './bootstrap.html';
 
 export const LAYOUT = 'bootstrap';
 
+
+Template.bootstrap.helpers({
+  alerts() {
+    return Bootstrap3boilerplate.__alert.get();
+  },
+});
+Template.bootstrap.events({
+  'click button'(event, instance) {
+    var alertid = event.currentTarget.dataset.alertid;
+    Bootstrap3boilerplate.removeAlert(alertid);
+  }
+});
+
 Template.bs_navbar.onCreated(function () {
   const instance = this;
   instance.imgid = '/';
