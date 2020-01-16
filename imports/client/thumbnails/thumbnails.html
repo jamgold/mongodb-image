@@ -24,6 +24,8 @@
 	<div class="row thumbnails" id="images">
 		{{#if ready}}
 			{{>thumbnails_data images=images}}
+		{{else}}
+			{{>thumbnails_loading noLoadingClass=true}}
 		{{/if}}
 	</div>
 

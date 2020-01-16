@@ -25,6 +25,7 @@ Session.setDefault('TagSearch',[]);
 Session.setDefault('src', new Date());
 
 // AllImageIDs = new ReactiveVar([]);
+ThumbnailsHandle = null;
 Contributors = new ReactiveVar([]);
 TagSearch = {
   get(){return Session.get('TagSearch')},

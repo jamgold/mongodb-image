@@ -2,8 +2,6 @@ import './thumbnails.html';
 import './thumbnail.js';
 console.log(__filename);
 
-ThumbnailsHandle = null;
-
 Template.thumbnails.onCreated(function () {
   var template = this;
   template.tags = new ReactiveVar(null);

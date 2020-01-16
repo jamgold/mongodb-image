@@ -38,22 +38,6 @@ Template.userImages.onCreated(function () {
         Session.set('user_banned', res.banned);
       } else console.error(err);
     });
-    if(false){
-    var counter = user in instance.contributors ? instance.contributors[user].count : 0;
-    var pages = [];
-    var page = 1;
-    var number = 18;//ImagesPerPage;
-    if (counter > ImagesPerPage) {
-      for (var i = 0; i < counter; i += number) {
-        var c = i == ImageStart ? 'page-item active' : 'page-item';
-        pages.push(`<li class="page-item ${c}" data-start="${i}"><a class="page-link" data-start="${i}">${page}</a></li>`);
-        page++;
-      }
-    }
-    // console.log(`set pages for ${user} / ${counter} => ${pages.length}`);
-    instance.pages.set(pages);
-    instance.start.set(0);
-    }
   });
 });
 Template.userImages.onRendered(function(){
@@ -215,6 +199,11 @@ Template.userImages.helpers({
   },
   user_name: function () {
     return Session.get('user_name');
+  },
+  ready(){
+    const instance = Template.instance();
+    // console.log('ready', instance.handle);
+    return instance.handle && instance.handle.ready();
   },
 });
 Template.userImages.events({

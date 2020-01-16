@@ -64,6 +64,7 @@ ul.ui-autocomplete {
 .user_images {
 	overflow: initial;
 	height:100%;
+	min-height: 340px;
 	margin-bottom: 1em;
 }
 .hidden {
@@ -99,6 +100,9 @@ div.fullscreen {
 	opacity: 0.5;
 }
 
+img.loading {
+	max-height: 300px;
+}
 div.image {
 	position:fixed;
 	padding: 15px;
