@@ -23,6 +23,7 @@ ul.ui-autocomplete {
 	/* height: 100px; */
 	display: inline-block;
 	margin-bottom:.1em;
+	border-radius: 5px;
 }
 .animated {
 /*
@@ -212,6 +213,10 @@ a.carousel.prev {
 	color: white;
 }
 
+.admin-tags {
+	max-height: 40em;
+	overflow-y: auto;
+}
 #tag-admin .tag {
 	background-color: #007bff;
 	color: white;
@@ -240,8 +245,8 @@ ul.tagit input[type="text"] {
 
 @media (max-device-width : 440px) 
 {
-	span.private-image, a.tag {
-		font-size: 2em;
+	span.image-badge, a.tag {
+		font-size: 1.2em;
 	}
 	.modal-dialog {
 		margin: 0 auto;
@@ -285,5 +290,32 @@ ul.tagit input[type="text"] {
 	}
 	.image.buttons {
 		font-size: 3em;
+	}
+}
+
+@media (max-width: 767.98px) {
+  .offcanvas-collapse {
+    position: fixed;
+    top: 56px; /* Height of navbar */
+    bottom: 0;
+    width: 100%;
+    padding-right: 1rem;
+    padding-left: 1rem;
+    overflow-y: auto;
+    background-color: var(--gray-dark);
+    transition: -webkit-transform .3s ease-in-out;
+    transition: transform .3s ease-in-out;
+    transition: transform .3s ease-in-out, -webkit-transform .3s ease-in-out;
+    -webkit-transform: translateX(100%);
+    transform: translateX(100%);
+  }
+  .offcanvas-collapse.open {
+    -webkit-transform: translateX(-1rem);
+		transform: translateX(-1rem); /* Account for horizontal padding on navbar */
+		background-color: var(--light);
+	}
+	.bs-glyphicons li {
+    width: 50%;
+		height: 10em;
 	}
 }

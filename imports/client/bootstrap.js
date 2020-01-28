@@ -1,11 +1,17 @@
+import isMobile from 'ismobilejs';
 import 'bootstrap/dist/js/bootstrap.min.js';
 import 'bootstrap/dist/css/bootstrap.min.css';
-// import 'glyphicons-only-bootstrap/css/bootstrap.css';
+import 'glyphicons-only-bootstrap/css/bootstrap.min.css';
 import './bootstrap.html';
+import popper from 'popper.js'
+global.Popper = popper // fixes some issues with Popper and Meteor
 
 export const LAYOUT = 'bootstrap';
 
-
+Template.bootstrap.onRendered(function(){
+  const instance = this;
+  window.isMobile = isMobile(navigator.userAgent).any;
+})
 Template.bootstrap.helpers({
   alerts() {
     return Bootstrap3boilerplate.__alert.get();
@@ -46,9 +52,10 @@ Template.bs_navbar.helpers({
   imageLinks() {
     FlowRouter.watchPathChange();
     const userId = Meteor.userId();
-    const img = DBImages.findOne(FlowRouter.current().params.id);
+    const img = Images.findOne(FlowRouter.current().params.id);
     const result = { links: [], imgid: null };
     if (img) {
+      if(isMobile) result.links.push(`<a class="nav-link" href="/">Thumbnails</a>`)
       result.imgid = img._id;
       result.links.push(`<a class="nav-link conditional" data-toggle="collapse" data-target="#imageInfo" data-id="${img._id}" href="/image/${img._id}">Info</a>`)
       if (img.user == userId || Roles.userIsInRole(userId, 'admin')) {
@@ -66,10 +73,13 @@ Template.bs_navbar.helpers({
   },
 });
 Template.bs_navbar.events({
+  'click [data-toggle="offcanvas"]'(event, instance) {
+    instance.$('.offcanvas-collapse').toggleClass('open')
+  },
   'click .delete': function (e, t) {
     const id = e.currentTarget.id;
     if (confirm(`Really Delete? ${id}`)) {
-      DBImages.remove({ _id: id }, function (err) {
+      Images.remove({ _id: id }, function (err) {
         if (err) {
           console.log(err);
           e.preventDefault();
@@ -84,7 +94,8 @@ Template.bs_navbar.events({
   'click a[data-target="#imageInfo"]'(event, instance) {
     FlowRouter.go(`/image/${event.currentTarget.dataset.id}`);
   },
-  'click a'(event, instance) {
-    instance.navbar.classList.remove('show');
+  'click a.nav-link:not(.dropdown-toggle)'(event, instance) {
+    // instance.navbar.classList.remove('show');
+    instance.$('.offcanvas-collapse').toggleClass('open')
   },
 });

@@ -1,5 +1,5 @@
 <template name='bootstrap'>
-	<LINK REL=StyleSheet HREF="/glyphicons.css" TYPE="text/css" MEDIA=screen>
+	<!-- <LINK REL=StyleSheet HREF="/glyphicons.css" TYPE="text/css" MEDIA=screen> -->
 	{{>bs_navbar}}
   <main role="main" class="container">
 		{{#if alerts}}
@@ -25,11 +25,11 @@
 <template name="bs_navbar">
   <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
     <a class="navbar-brand" href="{{url}}">{{title}}</a>
-    <button class="navbar-toggler"  data-toggle="collapse" data-target="#navbarsExampleDefault"
+    <button class="navbar-toggler"  data-toggle="offcanvas" data-target="#navbarsExampleDefault"
       aria-controls="navbarsExampleDefault" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
     </button>
-    <div class="collapse navbar-collapse" id="navbarsExampleDefault">
+    <div class="offcanvas-collapse navbar-collapse" id="navbarsExampleDefault">
 			<ul class="navbar-nav mr-auto">
 			<!-- <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">Disabled</a> -->
 				{{#with imageLinks}}
@@ -43,6 +43,9 @@
       <ul class="navbar-nav ml-auto">
 				{{#if currentUser}}
 					{{#if isInRole 'admin'}}
+						<li class="nav-item">
+							<a href="/admin/glyphicons" class="nav-link">Glyphicons</a>
+						</li>
 						<li class="nav-item dropdown">
 							<a class="nav-link dropdown-toggle" href="#" id="navbarAdminDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
 								Admin
