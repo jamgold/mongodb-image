@@ -126,7 +126,7 @@ Template.tags.onRendered(function () {
     options.afterTagAdded = function (event, ui) {
       if (TagsImgId) {
         // console.log(`added ${ui.tagLabel} to ${TagsImgId}`,ui);
-        DBImages.update(TagsImgId, { $push: { tags: ui.tagLabel } });
+        Images.update(TagsImgId, { $push: { tags: ui.tagLabel } });
       }
     };
     options.beforeTagRemoved = function (event, ui) {
@@ -142,7 +142,7 @@ Template.tags.onRendered(function () {
     options.afterTagRemoved = function (event, ui) {
       if (TagsImgId) {
         // console.log(`removed ${ui.tagLabel} from ${TagsImgId}`,ui);
-        DBImages.update(TagsImgId, { $pull: { tags: ui.tagLabel } });
+        Images.update(TagsImgId, { $pull: { tags: ui.tagLabel } });
       }
     };
   }

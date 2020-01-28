@@ -4,7 +4,9 @@ import '/imports/client/private.js';
 import '/imports/client/upload';
 import 'hammerjs';
 import { FlowRouter } from 'meteor/ostrio:flow-router-extra';
-
+//
+// http://www.apimeme.com/
+//
 if(Meteor.flush == undefined)
 Meteor.flush = function() {
   // console.info('Meteor.flush deprecated')
