@@ -51,10 +51,10 @@ Template.thumbnails.helpers({
     // console.log(`pages ${pages.length}`);
     return pages;
   },
-  // helper to get all the thumbnails only called ONCE, even when the subscription for DBImages changes
+  // helper to get all the thumbnails only called ONCE, even when the subscription for Images changes
   images() {
     // console.log('thumbnails helper');
-    return DBImages.find({
+    return Images.find({
       thumbnail: { $exists: 1 },
       // subscriptionId: ThumbnailsHandle.subscriptionId,
     }, {
@@ -66,7 +66,7 @@ Template.thumbnails.helpers({
     return ThumbnailsHandle.ready();
   },
   imageid() {
-    var img = DBImages.findOne();
+    var img = Images.findOne();
     return img ? img._id : null;
   },
   // tags(){
@@ -121,20 +121,22 @@ Template.thumbnails.events({
 
 Template.thumbnails_data.onRendered(function () {
   const instance = this;
-  const hash = Session.get('navbarUrl').replace('/#', '');//window.location.hash.replace('#', '');
-  if (hash) {
-    Meteor.setTimeout(function () {
-      const img = instance.find(`img[imageid="${hash}"]`);
-      if (img) {
-        const top = img.getBoundingClientRect().top;
-        if (top) {
-          // console.log(`${instance.view.name}.onRendered ${hash} ${top}`);
-          window.scrollTo(0, top - 60);
+  if(isMobile) {
+    const hash = Session.get('navbarUrl').replace('/#', '');//window.location.hash.replace('#', '');
+    if (hash) {
+      Meteor.setTimeout(function () {
+        const img = instance.find(`img[imageid="${hash}"]`);
+        if (img) {
+          const top = img.getBoundingClientRect().top;
+          if (top) {
+            // console.log(`${instance.view.name}.onRendered ${hash} ${top}`);
+            window.scrollTo(0, top - 60);
+          }
         }
-      }
-    }, 500)
-  } else {
-    console.log(`${instance.view.name}.onRendered no hash ${window.location.hash}`);
+      }, 500)
+    } else {
+      console.log(`${instance.view.name}.onRendered no hash ${window.location.hash}`);
+    }
   }
 });
 
@@ -142,6 +144,6 @@ Tracker.autorun(function subscribeThumbnails() {
   Template.thumbnails.numberofimages = 0;
   if (ThumbnailsHandle) ThumbnailsHandle.stop();
   ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'), TagSearch.get(), function () {
-    // console.log(`${DBImages.find().count()} thumbnails subscribed ${ThumbnailsHandle.subscriptionId}`);
+    // console.log(`${Images.find().count()} thumbnails subscribed ${ThumbnailsHandle.subscriptionId}`);
   });
 });
