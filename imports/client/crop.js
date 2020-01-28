@@ -24,7 +24,7 @@ Template.crop.helpers({
   },
   canCrop(){
     const id = FlowRouter.current().params.id;
-    const img = DBImages.findOne(id);
+    const img = Images.findOne(id);
     const userId = Meteor.userId();
     // console.log(`canCrop ${id} for ${userId}`, img);
     return img && userId && (Roles.userIsInRole(userId, 'admin') || img.user == userId);
@@ -45,11 +45,12 @@ Template.croppie.onRendered(function(){
   instance.cropped = instance.find('#cropped');
   // console.log(`${instance.view.name}.onRendered`, instance.data);
 
+  const boundary = window.isMobile ? {width: 300, height: 300} : { width: 500, height: 500 };
   instance.croppie = new Croppie(instance.image, {
     // The inner container of the coppie. The visible part of the image
     viewport: { width: 200, height: 200 },
     // The outer container of the cropper
-    boundary: { width: 500, height: 500 },
+    boundary: boundary,
     showZoomer: true,
     enableResize: false,
     enableOrientation: true,
@@ -66,7 +67,7 @@ Template.croppie.onRendered(function(){
     // console.log(`image loaded`, instance.details);
     Meteor.setTimeout(function () {
       var details = {};
-      const img = DBImages.findOne(instance.data.id);
+      const img = Images.findOne(instance.data.id);
       if (img) {
         // console.log(`${instance.view.name}.onCreated subscribed`)
         details = img.details ? img.details : {};
@@ -102,7 +103,7 @@ Template.croppie.events({
   'click button.save': async function (event, instance) {
     const image = await instance.croppie.result();
     instance.cropped.src = image;
-    DBImages.update(instance.data.id, {
+    Images.update(instance.data.id, {
       $set: {
         thumbnail: image,
         details: instance.details,

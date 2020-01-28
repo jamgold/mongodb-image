@@ -20,23 +20,28 @@
     <div class="col-lg-8 ">
       <img id="croppie" src="/circle-loading-animation.gif" />
     </div>
-    <div class="col-lg-4 ">
-      <img id="cropped">
+    <div class="col-lg-4 mx-auto">
+      <div class="text-center">
+        <img id="cropped">
+        <div class="btn-group" role="group" aria-label="Save">
+          <button class="btn btn-secondary zoom">Zoom</button>
+          <button class="btn btn-success save">Save</button>
+          <button class="btn btn-info save image" title="Save &amp; goto Image">Image</button>
+          <button class="btn btn-info save list" title="Save &amp; goto List">List</button>
+        </div>
+
+        <div class="btn-group" role="group" aria-label="Horizontal Button Group Rotation">
+          <button type="button" class="btn btn-secondary rotate">90</button>
+          <button type="button" class="btn btn-secondary rotate">180</button>
+          <button type="button" class="btn btn-secondary rotate">270</button>
+          <button type="button" class="btn btn-secondary rotate">-90</button>
+          <button type="button" class="btn btn-secondary rotate">-180</button>
+          <button type="button" class="btn btn-secondary rotate">-270</button>
+        </div>
+
+        <a href="/image/{{id}}" class="btn btn-dark">Back</a>
+
+      </div>
     </div>
   </div>
-  <button class="btn btn-secondary zoom">Zoom 0</button>
-  <div class="btn-group" role="group" aria-label="Save">
-    <button class="btn btn-success save">Save</button>
-    <button class="btn btn-info save image">Save (Image)</button>
-    <button class="btn btn-info save list">Save (List)</button>
-  </div>
-  <div class="btn-group" role="group" aria-label="Horizontal Button Group Rotation">
-    <button type="button" class="btn btn-secondary rotate">90</button>
-    <button type="button" class="btn btn-secondary rotate">180</button>
-    <button type="button" class="btn btn-secondary rotate">270</button>
-    <button type="button" class="btn btn-secondary rotate">-90</button>
-    <button type="button" class="btn btn-secondary rotate">-180</button>
-    <button type="button" class="btn btn-secondary rotate">-270</button>
-  </div>
-  <a href="/image/{{id}}" class="btn btn-dark">Back</a>
 </template>
