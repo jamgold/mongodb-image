@@ -1,10 +1,10 @@
 <head>
-	<title>Images</title>
-	<meta charset="utf-8" />
-	<meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
-  <meta name="description" content="" />
-  <meta name="author" content="Mark Otto, Jacob Thornton, and Bootstrap contributors" />
-	<meta name="generator" content="Jekyll v3.8.6" />
+ <meta charset="utf-8" />
+ <title>Images</title>
+ <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1, maximum-scale=1">
+ <meta name="description" content="Images collection" />
+ <meta name="author" content="Jan Hendrik Mangold" />
+ <meta name="generator" content="Meteor 1.9" />
 </head>
 
 <body class="bootstrap"></body>
@@ -15,7 +15,7 @@
 	<pre class="code">var file = $('#fileinput').files[0];
 var reader = new FileReader();
 reader.onload = function(e) {
-    DBImages.insert({src:e.target.result});
+    Images.insert({src:e.target.result});
 };</pre>
 	The images are stored as <a href="http://en.wikipedia.org/wiki/Data_URI_scheme">data URI</a>. Here is the beginning of the dataURI of the first thumbnail
 	<pre>data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAYAAABw4pVUAAAAAXNSR0IArs4c6QAAQABJREFUeAFtvWmMpdl5mPfefam9qquqq6vX6WF3z0zPcGZIDoc7KVISIwmRFUZREjiA7UC2/wjILwVB/gxgJIhjGInzw3IQG4INCzaUBIhtkXRoWSRFmha3GZKz9fR0T+9d3V37cuvu9+Z5zlffTJvhmam+937f+c7y7u973nO+QqFQGBfGEcE/jUop+oNRDMZcGBe4GFEqF2I4sEJEuU.... etc</pre>

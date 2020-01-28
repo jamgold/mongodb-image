@@ -1,5 +1,6 @@
 // https://github.com/VeliovGroup/flow-router
 import { FlowRouter, RouterHelpers } from 'meteor/ostrio:flow-router-extra';
+import { FlowRouterMeta, FlowRouterTitle } from 'meteor/ostrio:flow-router-meta';
 import { LAYOUT } from '/imports/client/bootstrap';
 global.FlowRouter = FlowRouter;
 
@@ -14,9 +15,49 @@ FlowRouter.route('/', {
 
 FlowRouter.route('/image/:id', {
   name: 'image',
-  async action(params) {
+  waitOn(params) {
+    // console.log(`image waitOn ${params.id}`);
+    return Meteor.subscribe('image', params.id);
+  },
+  data(params) {
+    return Images.findOne(params.id);
+  },
+  async action(params, query, image = {}) {
     import '/imports/client/image';
-    this.render(LAYOUT, "image", {content: "image"});
+    // console.log(`image action ${image._id} ${image.tags}`);
+    this.render(LAYOUT, "image", {image: image});
+  },
+  title(params, query, image) {
+    return image.name;
+  },
+  // The machinery that creates link previews will not follow<meta> redirects, nor run JavaScript, so metadata must 
+  // be available on the page without either occurring.Server - side redirects are followed, however, and are a 
+  // good alternative.
+  //
+  // we handle this server-side with server-render
+  //
+  meta:{
+    keywords: {
+      name: 'keywords',
+      itemprop: 'keywords',
+      content(params, query, data = {}) {
+        return data.tags;
+      }
+    },
+    'og:title'(params, query, image){
+      return image.name;
+    },
+    'og:url'(params, query, data = {}){
+      return `https://images.buzzledom.com/image/${params.id}`;
+    },
+    'og:type'(params, query, image = {}){
+      return image ? image.type : 'image/jpeg';
+    },
+    'og:image'(params, query, image = {}){
+      const url = `https://images.buzzledom.com/thumbnail/${params.id}`;
+      // console.log(url);
+      return url;
+    },
   }
 });
 
@@ -35,13 +76,6 @@ FlowRouter.route('/crop/:id', {
     this.render(LAYOUT, "crop");
   }
 });
-// FlowRouter.route('/image/:id/src', {
-//   name: 'imageSrc',
-//   action: function(params) {
-//     // console.log('image', params);
-//     this.render(LAYOUT,"imageSrc");
-//   }
-// });
 
 FlowRouter.route('/user/:user', {
   name: 'user_images',
@@ -51,7 +85,20 @@ FlowRouter.route('/user/:user', {
   }
 });
 
-FlowRouter.route('/admin/users', {
+
+const adminRoutes = FlowRouter.group({
+  prefix: '/admin',
+  name: 'admin',
+  triggersEnter: [(context, redirect) => {
+    if(!Roles.userIsInRole(Meteor.userId(), 'admin')){
+      // console.log('running group triggers', adminRoutes);
+      global.url403 = context.path;
+      redirect('/403');
+    }
+  }]
+});
+
+adminRoutes.route('/users', {
   name: 'admin_users',
   async action(params) {
     // import 'meteor/jamgold:accounts-admin-ui-bootstrap-3';
@@ -60,7 +107,7 @@ FlowRouter.route('/admin/users', {
   },
 });
 
-FlowRouter.route('/admin/tags', {
+adminRoutes.route('/tags', {
   name: 'admin_tags',
   async action(params) {
     // import 'meteor/jamgold:accounts-admin-ui-bootstrap-3';
@@ -69,6 +116,30 @@ FlowRouter.route('/admin/tags', {
   },
 });
 
+adminRoutes.route('/glyphicons', {
+  name: 'glyphicons',
+  async action(params) {
+    // import 'meteor/jamgold:accounts-admin-ui-bootstrap-3';
+    import '/imports/client/glyphicons';
+    this.render(LAYOUT, "glyphicons", { content: "glyphicons" });
+  },
+})
+
+FlowRouter.route('/403', {
+  title: '403: Access Denied',
+  async action(params, queryParams) {
+    const self = this;
+    import '/imports/client/404';
+    // console.log(`403 ${url403}`, params, queryParams);
+    if(global.url403) {
+      this.render(LAYOUT, '403', {
+        url: global.url403 ? global.url403 : 'undefined',
+      });
+    } else {
+      FlowRouter.redirect('/')
+    }
+  }
+})
 FlowRouter.route('*', {
   title: '404: Page not found',
   async action(params, queryParams) {
@@ -80,3 +151,5 @@ FlowRouter.route('*', {
     });
   }
 });
+
+global.flowRouterMeta = new FlowRouterMeta(FlowRouter);
