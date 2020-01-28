@@ -14,76 +14,80 @@ Template.image.onCreated(function () {
     src: new ReactiveVar('/circle-loading-animation.gif'),
     imageId: FlowRouter.current().params.id,
   });
-
-  instance.autorun(function () {
-    var userId = Meteor.userId();
-    var params = FlowRouter.current().params;
-    FlowRouter.watchPathChange();
-    instance.subscribe('image', params.id, function () {
-      var tagSearch = TagSearch.get();
-      var $myTags = $('#myTags');
-      TagsImgId = null;
-      $myTags.tagit('removeAll');
-      instance.cssclasses.set("");
-      var img = DBImages.findOne({ _id: params.id });
-      if (img) {
-        let readOnly = true;
-        if (userId) {
-          if (img.user == userId) {
-            readOnly = false;
-          } else {
-            readOnly = !Roles.userIsInRole(userId, 'admin');
-          }
-        }
-        // this only affects the tags and not readOnly of the input
-        $myTags.tagit({ readOnly: readOnly });//.prop('readOnly', false);
-        $('#myTags li.tagit-new input').prop('disabled', readOnly);
-        if (img.tags) {
-          img.tags.forEach(function (tag) {
-            $("#myTags").tagit("createTag", tag);
-          })
-        }
-        // $myTags.prop('readOnly', readOnly);
-        // set the preliminary src to animation and make it reactive
-        img.src = new ReactiveVar('/circle-loading-animation.gif');
-        instance.img.set(img);
-        // now call method to get src for id
-        Meteor.call('src', params.id, tagSearch, function (err, res) {
-          if (err) {
-            console.log(err);
-          }
-          else {
-            // set this routes img src
-            // console.log(`prev ${res.prev}, next ${res.next}`);
-            img.src.set(res.src);
-            instance.next.set(res.next);
-            instance.prev.set(res.prev);
-            instance.cssclasses.set(img.cssclasses);
-          }
-        });
-        if (Roles.userIsInRole(Meteor.userId(), 'admin')) {
-          if (img)
-            Meteor.call('user_name', img.user, function (err, res) {
-              if (!err) {
-                Session.set('user_name', res.email);
-                Session.set('user_banned', res.banned);
-                // console.log(`imageRenderedAutorun ${res.email}`);
-              } else console.error(err);
-            });
-        }
-
-      }
-      TagsImgId = params.id;
-    });
-    Session.set('navbarUrl',`/#${params.id}`);
-  });
 });
 Template.image.onRendered(function () {
   const instance = this;
+  const tagSearch = TagSearch.get();
+  const $myTags = $('#myTags');
+
+  instance.autorun(function imageAutorun() {
+    // FlowRouter.watchPathChange();
+    var userId = Meteor.userId();
+    var params = FlowRouter.current().params;
+    // console.log(`${instance.view.name}.onCreated`, instance.data);
+    // subscription now happens in the route
+    // instance.subscribe('image', params.id, function () {
+    // this takes care of the re-run since we subscribe in the route
+    var img = Template.currentData().image;//instance.data.image; //Images.findOne({ _id: params.id });
+    if (img) {
+      // this determines if the tags are being added to the image, set to null so the current image is not being updated
+      TagsImgId = null;
+      $myTags.tagit('removeAll');
+      instance.cssclasses.set("");
+      // console.log(`${instance.view.name}.onRendered autorun ${params.id} ${img._id} ${img.tags}`);
+      let readOnly = true;
+      if (userId) {
+        if (img.user == userId) {
+          readOnly = false;
+        } else {
+          readOnly = !Roles.userIsInRole(userId, 'admin');
+        }
+      }
+      // this only affects the tags and not readOnly of the input
+      $myTags.tagit({ readOnly: readOnly });//.prop('readOnly', false);
+      $('#myTags li.tagit-new input').prop('disabled', readOnly);
+      if (img.tags) {
+        img.tags.forEach(function (tag) {
+          $("#myTags").tagit("createTag", tag);
+        })
+      }
+      // $myTags.prop('readOnly', readOnly);
+      // set the preliminary src to animation and make it reactive
+      img.src = new ReactiveVar('/circle-loading-animation.gif');
+      instance.img.set(img);
+      // now call method to get src for id
+      Meteor.call('src', params.id, tagSearch, function (err, res) {
+        if (err) {
+          console.log(err);
+        }
+        else {
+          // set this routes img src
+          // console.log(`prev ${res.prev}, next ${res.next}`);
+          img.src.set(res.src);
+          instance.next.set(res.next);
+          instance.prev.set(res.prev);
+          instance.cssclasses.set(img.cssclasses);
+        }
+      });
+      if (Roles.userIsInRole(Meteor.userId(), 'admin')) {
+        if (img)
+          Meteor.call('user_name', img.user, function (err, res) {
+            if (!err) {
+              Session.set('user_name', res.email);
+              Session.set('user_banned', res.banned);
+              // console.log(`imageRenderedAutorun ${res.email}`);
+            } else console.error(err);
+          });
+      }
+    }
+    TagsImgId = params.id;
+    // });
+    Session.set('navbarUrl', `/#${params.id}`);
+  });
 });
 Template.image.helpers({
   allowed(){
-    const img = DBImages.findOne(this._id);
+    const img = Images.findOne(this._id);
     const userId = Meteor.userId();
     var allowed = true;
     if(img && img.type != 'loading' && img.private) {
@@ -137,7 +141,7 @@ Template.image.helpers({
       }
 
       if (update) {
-        DBImages.update({ _id: image._id }, { $set: { md5hash: image.md5hash, created: image.created } });
+        Images.update({ _id: image._id }, { $set: { md5hash: image.md5hash, created: image.created } });
         console.log('Template.image.helpers.img updated');
       }
       // else console.log('Template.image.helpers.img md5hash exist');
@@ -212,9 +216,9 @@ Template.image_info.events({
   'change #cssclasses'(e, t) {
     var c = e.currentTarget;
     var id = c.dataset.imageId;
-    // var image = DBImages.findOne(id);
+    // var image = Images.findOne(id);
     // var old = image.cssclasses;
-    DBImages.update(id, { $set: { cssclasses: c.value } }, function (r) {
+    Images.update(id, { $set: { cssclasses: c.value } }, function (r) {
       // t.$('.fullscreen').removeClass(old).addClass(c.value);
       t.data.cssclasses.set(c.value);
       console.log(`updated ${id} with cssclass=${c.value}`);
@@ -223,7 +227,7 @@ Template.image_info.events({
   // 'click .delete': function (e, t) {
   //   const id = e.currentTarget.id;
   //   if (confirm(`Really Delete? ${id}`)) {
-  //     DBImages.remove({ _id: id }, function (err) {
+  //     Images.remove({ _id: id }, function (err) {
   //       if (err) {
   //         console.log(err);
   //         e.preventDefault();
