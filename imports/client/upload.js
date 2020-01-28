@@ -130,7 +130,7 @@ Template.upload.onRendered(function () {
     if(private.length == 0) private = null;
     console.log(`cropImage cropped into cropCanvas ${template.file.name}`, tags, private);
 
-    DBImages.insert({
+    Images.insert({
       src: cropDataUrl
       , thumbnail: template.cropCanvas.toDataURL()
       , size: template.file.size
@@ -189,7 +189,7 @@ Template.upload.events({
       Meteor.call('getURL', url.value, (err, file) => {
         if (err) {
           console.error(err);
-          Bootstrap3boilerplate.alert('danger', `Image ${err.message} has been uploaded before`, true);
+          Bootstrap3boilerplate.alert('danger', `${err.details}`, true);
         } else {
           const md5hash = md5(file.data);
           template.file = file;
