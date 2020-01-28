@@ -22,7 +22,7 @@ Meteor.publish('thumbnails', function(imageStart, tags){
   // console.log(EJSON.stringify(query));
   imageStart = imageStart == undefined ? 0 : imageStart;
   // console.info('thumbnails start:'+ imageStart+' subscriptionId:'+self._subscriptionId);
-  var cursor = DBImages.find(query,{
+  var cursor = Images.find(query,{
     fields: {src:0}
     ,sort:{created: -1}
     ,skip: imageStart
@@ -34,7 +34,7 @@ Meteor.publish('thumbnails', function(imageStart, tags){
 
 Meteor.publish('image',function(id) {
   const self = this;
-  const images = DBImages.find(id,{
+  const images = Images.find(id,{
     fields: {src:0}
   });
   var userIds = [];
@@ -61,7 +61,7 @@ Meteor.publish('user_images', function(skip,user,tags){
   //
   const query = createQuery({ user: user }, tags);
   
-  return DBImages.find(query,{
+  return Images.find(query,{
     limit: 18,
     skip: skip,
     fields: {src:0},
@@ -77,7 +77,7 @@ Meteor.publish(null, function(){
   }
 });
 
-DBImages.allow({
+Images.allow({
   insert: function(userId, doc) {
     return userId;
   },
@@ -89,16 +89,19 @@ DBImages.allow({
   }
 });
 
-DBImages.before.insert(function(userId, doc) {
+Images.before.insert(function(userId, doc) {
   doc.user = userId;
   doc.order = Meteor.call('maxOrder') + 1;
   doc.created = new Date();
-  console.log(`DBImages inserting with order ${doc.order}`);
+  console.log(`Images inserting with order ${doc.order}`);
 });
 
 Meteor.methods({
+  count(tag){
+    return Images.find({tags:{$in:[tag]}}).count()
+  },
   tags(search){
-    const raw = DBImages.rawCollection();
+    const raw = Images.rawCollection();
     const distinct = Meteor.wrapAsync(raw.distinct, raw);
 
     let tags = distinct('tags');
@@ -116,13 +119,13 @@ Meteor.methods({
     if(Roles.userIsInRole(this.userId, 'admin')) {
       // find all the images that contain oldName tag
       var count = 0;
-      DBImages.find({tags:{$in:[oldName]}}).forEach(function(i){
+      Images.find({tags:{$in:[oldName]}}).forEach(function(i){
         // get the tags with oldName filtered out
         var tags = i.tags.filter((t) => {return t!=oldName});
         // add newName to tags if it doesn't exist
         if(tags.indexOf(newName)<0) tags.push(newName);
         // write back record
-        count += DBImages.update(i._id,{$set:{tags: tags}});
+        count += Images.update(i._id,{$set:{tags: tags}});
       });
       // return all tags sorted
       return {count: count, tags: Meteor.call('tags')};
@@ -134,14 +137,14 @@ Meteor.methods({
     return this.userId ? Meteor.users.find({'emails.0.address':{$regex: search, $options: 'i'}}).map((u) => { return {value: u._id, label: u.emails[0].address}}) : null;
   },
   maxOrder(){
-    let images = DBImages.find({order:{$exists:1}},{sort:{order:-1},limit:1}).fetch()
-    if(images.length>0) return images[0].order;else return DBImages.find().count()+10;
+    let images = Images.find({order:{$exists:1}},{sort:{order:-1},limit:1}).fetch()
+    if(images.length>0) return images[0].order;else return Images.find().count()+10;
   },
   nextImage(order, tags, userId){
     const self = this;
     if (userId == undefined) userId = self.userId;
     let query = createQuery({ order: { $lt: order }, $or: [{ private: { $exists: 0 } }, { private: { $in: [userId] } }, { user: self.userId }] }, tags) ;
-    let images = DBImages.find(query,{sort:{order:-1},limit:1}).fetch()
+    let images = Images.find(query,{sort:{order:-1},limit:1}).fetch()
     // console.log(`nextImage ${order} ${images.length}`, tags);
     if(images.length>0) return images[0]._id;else return null;
   },
@@ -149,24 +152,24 @@ Meteor.methods({
     const self = this;
     if(userId==undefined) userId = self.userId;
     let query = createQuery({ order: { $gt: order }, $or: [{ private: { $exists: 0 } }, { private: { $in: [userId] } }, { user: self.userId }]}, tags);
-    let images =  DBImages.find(query,{sort:{order:1},limit:1}).fetch();
+    let images =  Images.find(query,{sort:{order:1},limit:1}).fetch();
     // console.log(`prevImage ${order} ${images.length}`, tags);
     if(images.length>0) return images[0]._id;else return null;
   },
   contributors: function() {
     const self = this;
-    var res = {images:[],contributors:[],count: DBImages.find({thumbnail:{$exists:1}}).count()};
-    const raw = DBImages.rawCollection();
+    var res = {images:[],contributors:[],count: Images.find({thumbnail:{$exists:1}}).count()};
+    const raw = Images.rawCollection();
     const distinct = Meteor.wrapAsync(raw.distinct, raw);
 
     // console.time("allImageIds");
-    // res.images = DBImages.find({thumbnail:{$exists:1}, },{sort:{created: -1 } } ).fetch().map((image) => {return image._id;});
+    // res.images = Images.find({thumbnail:{$exists:1}, },{sort:{created: -1 } } ).fetch().map((image) => {return image._id;});
     // console.timeEnd("allImageIds");
 
     console.time("contributors");
     res.contributors = Meteor.users.find({_id:{$in:distinct('user')}}).fetch().map((u) => {
       var email = u.emails[0].address; //.replace(/[@\.]+/g,' ');
-      var count = DBImages.find({user: u._id}).count();
+      var count = Images.find({user: u._id}).count();
       r = {
         id: u._id,
         email: email,
@@ -201,10 +204,10 @@ Meteor.methods({
       ? createQuery({user: userId, thumbnail: { $exists: 1 } }, tags)
       : createQuery({ thumbnail: { $exists: 1 } }, tags)
     ;
-    return DBImages.find(query).count();
+    return Images.find(query).count();
   },
   imageExists: function(md5hash) {
-    var exists = DBImages.findOne({ md5hash: md5hash });
+    var exists = Images.findOne({ md5hash: md5hash });
     return exists != undefined;
   },
   user_name: function(id) {
@@ -250,7 +253,7 @@ Meteor.methods({
     }
   },
   src: function(id, tagSearch) {
-    var img = DBImages.findOne({ _id: id });
+    var img = Images.findOne({ _id: id });
     var res = {src: img ? img.src : '', prev:null,next:null};
     if(img && tagSearch){
       res.prev = Meteor.call('prevImage', img.order, tagSearch, this.userId);
@@ -262,8 +265,8 @@ Meteor.methods({
     if (Roles.userIsInRole(this.userId, ['admin']) || startup == 'startup') {
       let order = 1;
       console.time("updating order");
-      DBImages.find({},{sort:{created:1}}).forEach((image) => {
-        DBImages.update(image._id,{$set:{order: order++}});
+      Images.find({},{sort:{created:1}}).forEach((image) => {
+        Images.update(image._id,{$set:{order: order++}});
       });
       console.timeEnd("updating order");
     }
@@ -283,16 +286,53 @@ Meteor.methods({
           data: "data:" + content_type + ";base64," + new Buffer(response.content).toString('base64')
         }
       } else {
-        throw new Meteor.Error(500, 'wrong content type', `the url ${url} returned ${content_type}`);
+        throw new Meteor.Error(500, 'wrong content type', `the url "${url}" returned ${content_type}`);
       }
     } catch (e) {
-      throw new Meteor.Error(e.statusCode, 'url wrong', `the ${url} is wrong`);
+      // console.log(e);
+      throw new Meteor.Error(e.statusCode, 'url wrong', `<p>the URL ${url} could not be accessed:</p><pre>${e}</pre>`);
     }
-  }
+  },
+  addPrivate(imageid, uid) {
+    const image = Images.findOne(imageid);
+    if (image) {
+      if(image.user != this.userId || !Roles.userIsInRole(this.userId, 'admin')) {
+        throw new Meteor.Error(403, `${imageid} can not be modified by ${this.userId}`);
+      } else {
+        var r = 0;
+        if (image.private) {
+          r = Images.update(imageid, { $push: { private: uid } });
+        } else {
+          r = Images.update(imageid, { $set: { private: [uid] } });
+        }
+        return `added ${uid} to ${imageid} = ${r}`;
+      }
+    } else {
+      throw new Meteor.Error(404, `addPrivate image ${imageid} does not exist`)
+    }
+  },
+  delPrivate(imageid, uid) {
+    const image = Images.findOne(imageid);
+    if(image) {
+      if (image.user != this.userId || !Roles.userIsInRole(this.userId, 'admin')) {
+        throw new Meteor.Error(403, `${imageid} can not be modified by ${this.userId}`);
+      } else {
+        var r = 0;
+        if (image.private && image.private.length == 1) {
+          r = Images.update(imageid, { $unset: { private: 1 } });
+        } else {
+          r = Images.update(imageid, { $pull: { private: uid } });
+        }
+        return `removed ${uid} from ${imageid} = ${r}`;
+      }
+    } else {
+      throw new Meteor.Error(404, `delPrivate image ${imageid} does not exist`)
+    }
+  },
 });
 
 Meteor.startup(function(){
-  DBImages._ensureIndex('created');
+  Images._ensureIndex('created');
 
   var assets = EJSON.parse(Assets.getText('admin.json'));
   var admin_user = assets.admin_user;
@@ -303,10 +343,10 @@ Meteor.startup(function(){
     id = Accounts.createUser(admin_user);
     Roles.addUsersToRoles(id, ['admin']);
   }
-  if(DBImages.findOne({order:{$exists:0}})) {
+  if(Images.findOne({order:{$exists:0}})) {
     Meteor.call('reorder','startup')
   }
-  // var raw = DBImages.rawCollection();
+  // var raw = Images.rawCollection();
   // var distinct = Meteor.wrapAsync(raw.distinct, raw);
   // console.log(distinct('user'));
 });

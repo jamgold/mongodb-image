@@ -20,7 +20,7 @@ Template.private.onCreated(function(){
           instance.tagit.createTag({label: user.emails[0].address,value:u});
         } else {
           console.info(`${instance.imageid} has ${u} = ${typeof u} in private`)
-          DBImages.update(instance.imageid, {$pull:{private: u}});
+          Images.update(instance.imageid, {$pull:{private: u}});
         }
       });
     }
@@ -94,8 +94,14 @@ Template.private.onRendered(function(){
         // console.log(`afterTagAdded ${ui.tagValue}`);
         var uid = instance.validUser(ui.tagValue);
         if (uid && instance.imageid) {
-          console.log(`added ${uid} to ${instance.imageid}`);
-          DBImages.update(instance.imageid, { $push: { private: uid } });
+          Meteor.call('addPrivate', instance.imageid, uid, (err,res) => {
+            if (err) {
+              console.error(err);
+              Bootstrap3boilerplate.alert('danger', err.message, true);
+             } else {
+               Bootstrap3boilerplate.alert('success', res, true);
+             }
+          })
         }
       }
     },
@@ -104,12 +110,13 @@ Template.private.onRendered(function(){
       if (instance.useHook) {
         var uid = ui.tagValue;
         if (uid && instance.imageid) {
-          // console.log(`removed ${ui.tagLabel} (${uid}) from ${instance.imageid}`, instance.data.img);
-          if (instance.data.img && instance.data.img.private && instance.data.img.private.length == 1) {
-            DBImages.update(instance.imageid, { $unset: { private: 1 } });
-          } else {
-            DBImages.update(instance.imageid, { $pull: { private: uid } });
-          }
+          Meteor.call('delPrivate', instance.imageid, uid, (err,res) => {
+            if (err) {
+              Bootstrap3boilerplate.alert('danger', err.message, true);
+             } else {
+               Bootstrap3boilerplate.alert('success', res, true);
+             }
+          })
         }
       }
     },
