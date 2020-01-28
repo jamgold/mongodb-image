@@ -24,9 +24,20 @@ Template.userImages.onCreated(function () {
     }
     // console.log(instance.contributors);
   });
+  //
+  // this autorun needs to be in onCreated so the initial subscription happens
+  //
   instance.autorun(function () {
     FlowRouter.watchPathChange();
-    instance.user.set(FlowRouter.current().params.user);
+    const user = FlowRouter.current().params.user;
+    instance.user.set(user);
+    var start = instance.start.get();
+    var tags = instance.tags.get();
+
+    if (instance.handle) instance.handle.stop();
+    instance.handle = instance.subscribe('user_images', start, user, tags, function () {
+      //
+    });
   });
   instance.autorun(function () {
     var user = instance.user.get();
@@ -46,18 +57,23 @@ Template.userImages.onRendered(function(){
     var user = instance.user.get();
     var tags = instance.tags.get();
     instance.start.set(0);
+    // clear pages so it gets re-rendered
+    instance.pages.set([]);
+    // console.log(instance.$('.page-item.active').removeClass('active'));
     Meteor.call('imageCount', tags, user, (err, counter) => {
       if(err) {
         console.error(err);
       } else {
-        console.log(`pages to ${counter} images for ${user} with ${tags}`);
+        if (process.env.NODE_ENV == 'development'){
+          console.log(`${process.env.NODE_ENV} pages to ${counter} images for ${user} with ${tags}`);
+        }
         var pages = [];
         var page = 1;
         var number = 18;//ImagesPerPage;
         if (counter > number) {
           for (var i = 0; i < counter; i += number) {
             var c = i == 0 ? 'page-item active' : 'page-item';
-            pages.push(`<li class="page-item ${c}" data-start="${i}"><a class="page-link" data-start="${i}">${page}</a></li>`);
+            pages.push(`<li class="${c}" data-start="${i}"><a class="page-link" data-start="${i}">${page}</a></li>`);
             page++;
           }
         }
@@ -79,9 +95,6 @@ Template.userImages.onRendered(function(){
       tagit.createTag(tag);
     });
     instance.useHook = true;
-    if (instance.handle) instance.handle.stop();
-    instance.handle = instance.subscribe('user_images', start, user, tags, function () {
-    });
   });
 });
 Template.userImages.onDestroyed(function () {
@@ -92,7 +105,7 @@ Template.userImages.onDestroyed(function () {
   //
   if (ThumbnailsHandle) ThumbnailsHandle.stop();
   ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'), TagSearch.get(), function () {
-    // console.log(`${DBImages.find().count()} thumbnails subscribed ${ThumbnailsHandle.subscriptionId}`);
+    // console.log(`${Images.find().count()} thumbnails subscribed ${ThumbnailsHandle.subscriptionId}`);
   });
 });
 Template.userImages.helpers({
@@ -167,7 +180,9 @@ Template.userImages.helpers({
   },
   pages() {
     const instance = Template.instance();
-    return instance.pages.get();
+    const pages = instance.pages.get();
+    // console.log(`pages`, pages);
+    return pages;
   },
   contributors() {
     return Contributors.get();
@@ -187,7 +202,7 @@ Template.userImages.helpers({
     //
     var instance = Template.instance();
     var user = instance.user.get()
-    return DBImages.find({
+    return Images.find({
       user: user,
     }, {
       sort: { created: -1 }
