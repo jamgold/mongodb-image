@@ -9,9 +9,11 @@
 <template name='tags_admin'>
         <div class="row">
           <div class="col-lg-8" id="tag-admin">
+            <div class="admin-tags">
             {{#each tag in tags}}
               <a data-tag="{{tag}}" href="#{{tag}}" class="tag">{{tag}}</a>
             {{/each}}
+            </div>
           </div>
           <div class="col-lg-4">
             <h4>

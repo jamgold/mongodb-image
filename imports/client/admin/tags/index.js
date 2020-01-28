@@ -3,10 +3,19 @@ console.log(__filename);
 Template.tags_admin.onCreated(function(){
   const instance = this;
   instance.tags = ReactiveVar([]);
-  instance.tag = ReactiveVar(null);
+  instance.tag = ReactiveVar('');
+  instance.count = ReactiveVar('');
   Meteor.call('tags', (err, tags) => {
     if (err) Bootstrap3boilerplate.alert('danger', `${err.message}`, true);
     else instance.tags.set(tags);
+  })
+  instance.autorun(function(){
+    const tag = instance.tag.get();
+    if(tag) {
+      Meteor.call('count', tag, (err,count) => {
+        if(err) console.error(err);else instance.count.set(`(${count})`);
+      })
+    }
   })
 });
 Template.tags_admin.onRendered(function(){
@@ -22,7 +31,10 @@ Template.tags_admin.helpers({
     return Template.instance().tags.get()
   },
   selectedTag(){
-    return Template.instance().tag.get()
+    const instance = Template.instance();
+    const tag = instance.tag.get();
+  
+    return tag ? `${tag} ${instance.count.get()}` : '';
   },
   disabled(){
     return Template.instance().tag.get() == null ? 'disabled' : '';
@@ -34,7 +46,8 @@ Template.tags_admin.events({
     instance.newName.value = event.currentTarget.dataset.tag;
   },
   'click .reset'(event, instance) {
-    instance.tag.set(null);
+    instance.tag.set('');
+    instance.count.set('');
     instance.newName.value = '';
   },
   'click .update'(event, instance) {
