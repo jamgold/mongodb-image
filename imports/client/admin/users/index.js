@@ -28,11 +28,17 @@ Template.accountsAdmin.onCreated(function(){
 });
 Template.accountsAdmin.onRendered(function(){
   const instance = this;
+  instance.$('.btn-dark').switchClass('btn-dark', 'btn-outline-secondary');
 });
 Template.accountsAdmin.onDestroyed(function(){
   const instance = this;
 });
 Template.accountsAdmin.helpers({
+  contentColumns() {
+    return [
+      'Images',
+    ];
+  },
   contentColumn(column, user) {
     // console.log(`${column} ${user._id}`,column);
     const contributors = Template.instance().contributors.get();
@@ -49,11 +55,6 @@ Template.accountsAdmin.helpers({
         r.push('Unknow Column');
     }
     return r.join('');
-  },
-  contentColumns(){
-    return [
-      'Images',
-    ];
   },
 });
 Template.accountsAdmin.events({
