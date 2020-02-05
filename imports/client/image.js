@@ -184,6 +184,17 @@ Template.image.events({
   // 'change #image-type'(e, t) {
   //   ImageType.set(e.currentTarget.value);
   // },
+  'click .present-tags .tag'(event, instance) {
+    var tags = TagSearch.get();
+    const tag = event.currentTarget.dataset.tag;
+    if (tags.indexOf(tag < 0)) {
+      // console.log(`adding ${tag} to ${tags}`);
+      tags.push(tag);
+      TagSearch.set(tags);
+      Session.set('imageStart', 0);
+      FlowRouter.go('/')
+    }
+  },
 });
 
 Template.image_info.onRendered(function(){

@@ -27,8 +27,20 @@
 			{{#if next}}
 				<a class="btn carousel next" href="/image/{{next}}"><i class="glyphicon glyphicon-chevron-right"></i></a>
 			{{/if}}
+
 			{{#if src}}
 				{{#if allowed}}
+					{{#if private}}
+						<span class="image-badge private-image image-view">
+							<span class="glyphicon glyphicon-eye-close"></span>
+						</span>
+					{{/if}}
+					<span class="image-badge present-tags image-view">
+					{{#each tag in tags}}
+						<span class="tag" data-tag="{{tag}}">{{tag}}</span>
+					{{/each}}
+					</span>
+
 					{{#if cover}}
 						<div
 							class="fullscreen {{cssclassesImage}}"

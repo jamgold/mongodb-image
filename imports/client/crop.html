@@ -1,6 +1,18 @@
 <template name='crop'>
   {{#if Template.subscriptionsReady}}
     {{#if canCrop}}
+      {{#if private}}
+        <span class="image-badge private-image image-view">
+          <span class="glyphicon glyphicon-eye-close"></span>
+        </span>
+      {{/if}}
+
+      <span class="image-badge present-tags image-view">
+      {{#each tag in tags}}
+        <span class="tag" data-tag="{{tag}}">{{tag}}</span>
+      {{/each}}
+      </span>
+
       {{! make this a sub template so we only engage Croppie if we can actually edit the image}}
       {{>croppie id=id}}
     {{else}}
@@ -16,6 +28,13 @@
 </template>
 
 <template name='croppie'>
+  {{#if prev}}
+    <a class="btn carousel prev" href="/crop/{{prev}}"><i class="glyphicon glyphicon-chevron-left"></i></a>
+  {{/if}}
+  {{#if next}}
+    <a class="btn carousel next" href="/crop/{{next}}"><i class="glyphicon glyphicon-chevron-right"></i></a>
+  {{/if}}
+
   <div class="row">
     <div class="col-lg-8 ">
       <img id="croppie" src="/circle-loading-animation.gif" />
@@ -29,7 +48,7 @@
           <button class="btn btn-info save image" title="Save &amp; goto Image">Image</button>
           <button class="btn btn-info save list" title="Save &amp; goto List">List</button>
         </div>
-
+        {{#if commentOut}}
         <div class="btn-group" role="group" aria-label="Horizontal Button Group Rotation">
           <button type="button" class="btn btn-secondary rotate">90</button>
           <button type="button" class="btn btn-secondary rotate">180</button>
@@ -38,7 +57,7 @@
           <button type="button" class="btn btn-secondary rotate">-180</button>
           <button type="button" class="btn btn-secondary rotate">-270</button>
         </div>
-
+        {{/if}}
         <a href="/image/{{id}}" class="btn btn-dark">Back</a>
 
       </div>
