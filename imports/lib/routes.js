@@ -85,7 +85,6 @@ FlowRouter.route('/user/:user', {
   }
 });
 
-
 const adminRoutes = FlowRouter.group({
   prefix: '/admin',
   name: 'admin',
@@ -116,7 +115,7 @@ adminRoutes.route('/tags', {
   },
 });
 
-adminRoutes.route('/glyphicons', {
+FlowRouter.route('/admin/glyphicons', {
   name: 'glyphicons',
   async action(params) {
     // import 'meteor/jamgold:accounts-admin-ui-bootstrap-3';
