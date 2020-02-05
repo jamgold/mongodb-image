@@ -15,5 +15,3 @@ Template.thumbnail.helpers({
   //   console.log(this);
   // }
 });
-Template.thumbnail.events({
-});
