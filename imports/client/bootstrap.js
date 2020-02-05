@@ -1,7 +1,8 @@
 import isMobile from 'ismobilejs';
-import 'bootstrap/dist/js/bootstrap.min.js';
-import 'bootstrap/dist/css/bootstrap.min.css';
+// import 'bootstrap/dist/js/bootstrap.min.js';
+// import 'bootstrap/dist/css/bootstrap.min.css';
 import 'glyphicons-only-bootstrap/css/bootstrap.min.css';
+// we fix the font url in /client/css/glyphicons.css
 import './bootstrap.html';
 import popper from 'popper.js'
 global.Popper = popper // fixes some issues with Popper and Meteor
