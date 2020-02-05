@@ -33,13 +33,17 @@ Template.tags.onRendered(function () {
       minLength: 1,
       // autoFocus: true,
       source(request, callback) {
+        // console.log('tag.search', request);
         Meteor.call('tags', request.term, (err, tags) => {
           var options = [];
           if (err) {
             console.error(err);
+            Bootstrap3boilerplate.alert('danger', err.message, true);
           } else {
+            // console.log(tags);
             instance.validTags = tags;
             options = tags.map((t) => { return { label: t, value: t } });
+            // options = tags.map((t) => { return { label: t.tag, value: t._id } });
           }
           callback(options);
         });
@@ -125,8 +129,17 @@ Template.tags.onRendered(function () {
     // }
     options.afterTagAdded = function (event, ui) {
       if (TagsImgId) {
-        // console.log(`added ${ui.tagLabel} to ${TagsImgId}`,ui);
-        Images.update(TagsImgId, { $push: { tags: ui.tagLabel } });
+        console.log(`added ${ui.tagLabel} to ${TagsImgId}`,ui);
+        // Images.update(TagsImgId, { $push: { tags: ui.tagLabel } });
+        Meteor.call('addTag', TagsImgId, ui.tagValue, (err, res) => {
+          if (err) {
+            console.error(err);
+            Bootstrap3boilerplate.alert('danger', err.message, true);
+          }
+          // else {
+          //   Bootstrap3boilerplate.alert('success', res, true);
+          // }
+        })
       }
     };
     options.beforeTagRemoved = function (event, ui) {
@@ -142,7 +155,16 @@ Template.tags.onRendered(function () {
     options.afterTagRemoved = function (event, ui) {
       if (TagsImgId) {
         // console.log(`removed ${ui.tagLabel} from ${TagsImgId}`,ui);
-        Images.update(TagsImgId, { $pull: { tags: ui.tagLabel } });
+        // Images.update(TagsImgId, { $pull: { tags: ui.tagLabel } });
+        Meteor.call('delTag', TagsImgId, ui.tagValue, (err, res) => {
+          if (err) {
+            console.error(err);
+            Bootstrap3boilerplate.alert('danger', err.message, true);
+          }
+          // else {
+          //   Bootstrap3boilerplate.alert('success', res, true);
+          // }
+        })
       }
     };
   }

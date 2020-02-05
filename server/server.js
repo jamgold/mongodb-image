@@ -16,20 +16,37 @@ const createQuery = function(query, tags) {
   return query;
 };
 
+const rawImages = Images.rawCollection();
+const ImagesDistinct = Meteor.wrapAsync(rawImages.distinct, rawImages);
+
 Meteor.publish('thumbnails', function(imageStart, tags){
   const self = this;
   let query = createQuery({thumbnail:{$exists:1},$or:[{private:{$exists:0}},{private:{$in:[this.userId]}},{user:self.userId}]}, tags);
   // console.log(EJSON.stringify(query));
   imageStart = imageStart == undefined ? 0 : imageStart;
   // console.info('thumbnails start:'+ imageStart+' subscriptionId:'+self._subscriptionId);
-  var cursor = Images.find(query,{
+  const images = Images.find(query,{
     fields: {src:0}
     ,sort:{created: -1}
     ,skip: imageStart
     ,limit: ImagesPerPage
   });
-  // console.log(`${cursor.fetch().length} thumbnails published with limit ${ImagesPerPage}`);
-  return cursor;
+  //
+  // now publish all the tags
+  //
+  // var tagids = ImagesDistinct('tagids', query);
+  // cursors.push( Tags.find({_id:{$in:tagids}}) );
+  if(UseTagsCollection) {
+    const tagids = [];
+    images.forEach((image) => {
+      tagids.push(...image.tagids);
+    });
+    const tagcursor = Tags.find({ _id: { $in: tagids } });
+    // console.log(`${cursor.fetch().length} thumbnails published with limit ${ImagesPerPage}`);
+    return [images, tagcursor];
+  } else {
+    return images;
+  }
 });
 
 Meteor.publish('image',function(id) {
@@ -101,16 +118,22 @@ Meteor.methods({
     return Images.find({tags:{$in:[tag]}}).count()
   },
   tags(search){
-    const raw = Images.rawCollection();
-    const distinct = Meteor.wrapAsync(raw.distinct, raw);
-
-    let tags = distinct('tags');
-    if(search == undefined){
-      return tags.sort();
+    // const raw = Images.rawCollection();
+    // const distinct = Meteor.wrapAsync(raw.distinct, raw);
+    if(UseTagsCollection) {
+      const tags = Tags.find({ tag: { $regex: search } }, { sort: { tag: 1 } }).fetch();
+      console.log(`${search} => ${tags}`);
+      return tags;
     } else {
-      const s = search.toLowerCase();
-      // console.log(`searching for ${s}`);
-      return tags.filter((tag) => { return tag.toLowerCase().includes(s) }).sort();
+      let tags = ImagesDistinct('tags');
+      // console.log(`tags.search ${search} in ${tags}`);
+      if(search == undefined){
+        return tags.sort();
+      } else {
+        const s = search != undefined ? search.toLowerCase() : search;
+        // console.log(`searching for ${s}`);
+        return tags.filter((tag) => { return tag && tag.toLowerCase().includes(s) }).sort();
+      }
     }
   },
   update_tag(oldName,newName) {
@@ -329,11 +352,40 @@ Meteor.methods({
       throw new Meteor.Error(404, `delPrivate image ${imageid} does not exist`)
     }
   },
+  addTag(imageid, tag) {
+    const image = Images.findOne(imageid);
+    if (image) {
+      if (image.user != this.userId || !Roles.userIsInRole(this.userId, 'admin')) {
+        throw new Meteor.Error(403, `${imageid} can not be modified by ${this.userId}`);
+      } else {
+        var r = 0;
+        r = Images.update(imageid, { $push: { tags: tag } });
+        return `added ${tag} to ${imageid} = ${r}`;
+      }
+    } else {
+      throw new Meteor.Error(404, `addTag image ${imageid} does not exist`)
+    }
+  },
+  delTag(imageid, tag) {
+    const image = Images.findOne(imageid);
+    if (image) {
+      if (image.user != this.userId || !Roles.userIsInRole(this.userId, 'admin')) {
+        throw new Meteor.Error(403, `${imageid} can not be modified by ${this.userId}`);
+      } else {
+        var r = 0;
+        r = Images.update(imageid, { $pull: { tags: tag } });
+        return `deleted ${tag} to ${imageid} = ${r}`;
+      }
+    } else {
+      throw new Meteor.Error(404, `delTag image ${imageid} does not exist`)
+    }
+  }
 });
 
 Meteor.startup(function(){
   Images._ensureIndex('created');
-
+  Images._ensureIndex('tags');
+  Tags._ensureIndex('tag')
   var assets = EJSON.parse(Assets.getText('admin.json'));
   var admin_user = assets.admin_user;
   var admin = Meteor.users.findOne({username: admin_user.username});
@@ -346,8 +398,27 @@ Meteor.startup(function(){
   if(Images.findOne({order:{$exists:0}})) {
     Meteor.call('reorder','startup')
   }
-  // var raw = Images.rawCollection();
-  // var distinct = Meteor.wrapAsync(raw.distinct, raw);
-  // console.log(distinct('user'));
+  //
+  // turn tags into their own collection
+  //
+  if(UseTagsCollection) {
+    if (Tags.find().count() == 0) {
+      Images.find({ tags: { $exists: true } }).forEach((image) => {
+        var tagids = [];
+        image.tags.forEach((tag) => {
+          var tig = Tags.upsert({ tag: tag }, { $set: { tag: tag } });
+          console.log(tig);
+          if (tig.insertedId) {
+            console.log(`${tag} = ${tig.insertedId}`, tig);
+            tagids.push(tig.insertedId);
+          } else {
+            console.log(`${tag} already exists`);
+            tagids.push(Tags.findOne({ tag: tag })._id);
+          }
+        })
+        Images.update(image._id, { $set: { tagids: tagids } });
+      })
+    }
+  }
 });
 
