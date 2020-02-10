@@ -104,7 +104,7 @@ Template.userImages.onDestroyed(function () {
   // restore global subscription
   //
   if (ThumbnailsHandle) ThumbnailsHandle.stop();
-  ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'), TagSearch.get(), function () {
+  ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'), TagSearch.get(), ImagesPerPage, function () {
     // console.log(`${Images.find().count()} thumbnails subscribed ${ThumbnailsHandle.subscriptionId}`);
   });
 });

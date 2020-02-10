@@ -100,7 +100,10 @@ div.fullscreen {
 .footer{
 	opacity: 0.5;
 }
-
+nav.pagination {
+	/* position: fixed; */
+	bottom: 10px;
+}
 img.loading {
 	max-height: 300px;
 }

@@ -14,7 +14,7 @@ Template.thumbnails.onCreated(function () {
 Template.thumbnails.onRendered(function () {
   var template = this;
   TagsImgId = null;
-  template.autorun(function () {
+  template.autorun(function thumbnailsAutorun() {
     ImageStart = parseInt(ImageStart);
     // console.log(`${template.view.name}.onCreated.autorun ImageStart=${ImageStart}`);
     var counter = Session.get('imageCount');
@@ -89,7 +89,7 @@ Template.thumbnails.events({
     if (current) {
       const start = parseInt(current.dataset.start);
       if (start > 0) {
-        const page = document.querySelector(`.pagination li a[data-start="${start - 18}"]`);
+        const page = document.querySelector(`.pagination li a[data-start="${start - ImagesPerPage}"]`);
         if (page) page.click();
       }
     }
@@ -99,7 +99,7 @@ Template.thumbnails.events({
     if (current) {
       const start = parseInt(current.dataset.start);
       // if (start > 0) {
-      const page = document.querySelector(`.pagination li a[data-start="${start + 18}"]`);
+      const page = document.querySelector(`.pagination li a[data-start="${start + ImagesPerPage}"]`);
       if (page) page.click();
       // }
     }
@@ -143,7 +143,7 @@ Template.thumbnails_data.onRendered(function () {
 Tracker.autorun(function subscribeThumbnails() {
   Template.thumbnails.numberofimages = 0;
   if (ThumbnailsHandle) ThumbnailsHandle.stop();
-  ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'), TagSearch.get(), function () {
+  ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'), TagSearch.get(), ImagesPerPage, function () {
     // console.log(`${Images.find().count()} thumbnails subscribed ${ThumbnailsHandle.subscriptionId}`);
   });
 });

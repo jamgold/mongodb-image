@@ -20,7 +20,7 @@
 			</div>
 		{{/if}}
 	{{/if}}
-
+<div>
 	<div class="row thumbnails" id="images">
 		{{#if ready}}
 			{{>thumbnails_data images=images}}
@@ -29,10 +29,8 @@
 		{{/if}}
 	</div>
 
-	{{!if ready}}
-		{{>pagination pages=pages}}
-	{{!if}}
-
+	{{>pagination pages=pages}}
+</div>
 	{{!instructions}}
 	{{#if isInRole 'moment'}}
 		{{> momentTemplate}}

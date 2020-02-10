@@ -19,7 +19,7 @@ const createQuery = function(query, tags) {
 const rawImages = Images.rawCollection();
 const ImagesDistinct = Meteor.wrapAsync(rawImages.distinct, rawImages);
 
-Meteor.publish('thumbnails', function(imageStart, tags){
+Meteor.publish('thumbnails', function(imageStart, tags, limit){
   const self = this;
   let query = createQuery({thumbnail:{$exists:1},$or:[{private:{$exists:0}},{private:{$in:[this.userId]}},{user:self.userId}]}, tags);
   // console.log(EJSON.stringify(query));
@@ -29,7 +29,7 @@ Meteor.publish('thumbnails', function(imageStart, tags){
     fields: {src:0}
     ,sort:{created: -1}
     ,skip: imageStart
-    ,limit: ImagesPerPage
+    ,limit: limit ? limit : ImagesPerPage
   });
   //
   // now publish all the tags

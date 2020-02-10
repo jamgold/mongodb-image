@@ -34,7 +34,7 @@ reader.onload = function(e) {
 </template>
 
 <template name='pagination'>
-		<nav aria-label="Page navigation">
+	<nav aria-label="Page navigation" class="pagination">
 		<ul class="pagination" style="flex-wrap: wrap">
 			{{#if currentUser}}
 				{{#unless isInRole 'banned'}}

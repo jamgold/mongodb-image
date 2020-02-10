@@ -4,12 +4,26 @@ import { FlowRouterMeta, FlowRouterTitle } from 'meteor/ostrio:flow-router-meta'
 import { LAYOUT } from '/imports/client/bootstrap';
 global.FlowRouter = FlowRouter;
 
+ThumbnailsMinHeight = null;
+
+calculateImagesPerPage = function() {
+  ImagesPerPage = parseInt((window.innerHeight - 120) / 150) * 6;
+
+  if (false && !ThumbnailsMinHeight) {
+  }
+}
 FlowRouter.route('/', {
   name: 'thumbnails',
   title: 'Images',
   async action(params) {
     import '/imports/client/thumbnails';
     this.render(LAYOUT, "thumbnails", {content: "thumbnails"});
+    Meteor.setTimeout(function () {
+      const images = $('#images');
+      ThumbnailsMinHeight = images.height();
+      images.css('minHeight', `${ThumbnailsMinHeight}px`);
+      console.log(`ThumbnailsMinHeight ${ThumbnailsMinHeight}`);
+    }, 2000)
   },
 });
 
@@ -152,3 +166,7 @@ FlowRouter.route('*', {
 });
 
 global.flowRouterMeta = new FlowRouterMeta(FlowRouter);
+
+// Meteor.startup(function(){
+  calculateImagesPerPage()
+// })
