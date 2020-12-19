@@ -1,6 +1,7 @@
 import isMobile from 'ismobilejs';
-// import 'bootstrap/dist/js/bootstrap.min.js';
-// import 'bootstrap/dist/css/bootstrap.min.css';
+import jQuery from 'jquery';
+import 'bootstrap/dist/js/bootstrap.js';
+import 'bootstrap/dist/css/bootstrap.min.css';
 import 'glyphicons-only-bootstrap/css/bootstrap.min.css';
 // we fix the font url in /client/css/glyphicons.css
 import './bootstrap.html';
@@ -58,7 +59,8 @@ Template.bs_navbar.helpers({
     if (img) {
       if(isMobile) result.links.push(`<a class="nav-link" href="/">Thumbnails</a>`)
       result.imgid = img._id;
-      result.links.push(`<a class="nav-link conditional" data-toggle="collapse" data-target="#imageInfo" data-id="${img._id}" href="/image/${img._id}">Info</a>`)
+      // result.links.push(`<a class="nav-link conditional" data-toggle="collapse" data-target="#imageInfo" data-id="${img._id}" href="/image/${img._id}">Info</a>`)
+      result.links.push(`<a class="nav-link conditional imageInfo" data-id="${img._id}" href="/image/${img._id}">Info</a>`)
       if (img.user == userId || Roles.userIsInRole(userId, 'admin')) {
         const cropped = img.details == undefined ? '<span class="glyphicon glyphicon-resize-small"></span>' : '<span class="glyphicon glyphicon-ok" title="image thumbnail cropped"></span>';
         // console.log(img);
@@ -92,8 +94,12 @@ Template.bs_navbar.events({
       });
     }
   },
-  'click a[data-target="#imageInfo"]'(event, instance) {
+  'click a.imageInfo'(event, instance) {
     FlowRouter.go(`/image/${event.currentTarget.dataset.id}`);
+    // console.log(event);
+    // we need to manually toggle because dynamically genereated 
+    // links do not work with the automatic data-toggle
+    $('#imageInfo').collapse('toggle');
   },
   'click a.nav-link:not(.dropdown-toggle)'(event, instance) {
     // instance.navbar.classList.remove('show');
