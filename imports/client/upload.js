@@ -1,7 +1,9 @@
 import './upload.html';
-import './tagit';
-console.log(__filename);
-var md5 = require('md5');
+import './thumbnails/tagit';
+import { makeHash } from '/imports/lib/hash';
+// console.log(__filename);
+
+const CROP_DIMENSIONS = {x: 200, y: 200}
 
 Template.upload.onCreated(function () {
   const template = this;
@@ -81,8 +83,8 @@ Template.upload.onRendered(function () {
   if (!template.cropCanvas) {
     template.cropCanvas = document.createElement('canvas');
     template.cropCanvas.id = 'crop_canvas';
-    template.cropCanvas.width = 100;
-    template.cropCanvas.height = 100;
+    template.cropCanvas.width = CROP_DIMENSIONS.x;
+    template.cropCanvas.height = CROP_DIMENSIONS.y;
     if (template.debug) {
       console.log('creating #crop_canvas');
     } else {
@@ -94,7 +96,7 @@ Template.upload.onRendered(function () {
   // define onload handler for image
   //
   template.crop_img.onload = function cropImgLoaded(e) {
-    console.log(`crop_img.onload ${e.timeStamp}`);
+    if (template.debug) console.log(`crop_img.onload ${e.timeStamp}`);
     var cropCanvas = template.cropCanvas;
     var cropDataUrl = this.src;
     var cc = {
@@ -105,8 +107,7 @@ Template.upload.onRendered(function () {
     };
     if (cc.height > cc.width) {
       cc.height = cc.width;
-    }
-    else {
+    } else {
       cc.width = this.height;
     }
     // console.log('cropping',cc);
@@ -119,16 +120,16 @@ Template.upload.onRendered(function () {
       this, //template.crop_img,
       // original x/y w/h
       cc.x, cc.y,
-      100, 100 * cc.width / cc.height
-      // cc.width, cc.height,
+      // CROP_DIMENSIONS.x, CROP_DIMENSIONS.y * cc.width / cc.height
+      cc.width, cc.height,
       // reduce to canvas x/y w/h
-      // 0, 0,
-      // template.cropCanvas.width, template.cropCanvas.height
+      0, 0,
+      template.cropCanvas.width, template.cropCanvas.height
     );
     var tags = $('#new_image_tags').tagit('assignedTags');
     var private = $('#new_image_users').tagit('assignedTags');
-    if(private.length == 0) private = null;
-    console.log(`cropImage cropped into cropCanvas ${template.file.name}`, tags, private);
+    if (private.length == 0) private = null;
+    if (template.debug) console.log(`cropImage cropped into cropCanvas ${template.file.name}`, tags, private);
 
     Images.insert({
       src: cropDataUrl
@@ -155,9 +156,9 @@ Template.upload.onRendered(function () {
   // define onload handler for reader to read in the file
   //
   template.reader.onload = (function (aImg) {
-    return function (e) {
+    return async function (e) {
       if (template.file.type in AcceptedFileTypes) {
-        template.md5hash = md5(e.target.result);
+        template.md5hash = await makeHash(e.target.result);
         if (template.debug) {
           console.log(`read file ${template.file.name} => ${template.md5hash}`);
         }
@@ -183,15 +184,15 @@ Template.upload.onDestroyed(function () {
   // console.log(`${template.view.name}.onDestroyed`);
 });
 Template.upload.events({
-  'click button.upload-url'(event, template) {
+  'click button.upload-url' (event, template) {
     var url = template.find('#image-url');
     if (url) {
-      Meteor.call('getURL', url.value, (err, file) => {
+      Meteor.call('getURL', url.value, async function(err, file) {
         if (err) {
           console.error(err);
           Bootstrap3boilerplate.alert('danger', `${err.details}`, true);
         } else {
-          const md5hash = md5(file.data);
+          const md5hash = await makeHash(file.data);
           template.file = file;
 
           Meteor.call('imageExists', md5hash, function imageExits(err, exists) {
