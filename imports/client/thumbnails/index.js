@@ -1,7 +1,24 @@
+import '/imports/client/upload';
 import './thumbnails.html';
 import './thumbnail.js';
 console.log(__filename);
 
+ImagesDiv = null;
+Mobile = navigator.userAgent.match(/Mobile/)
+
+const recalculateImagesPerPage = function(){
+  if(ImagesDiv && !Mobile){
+    Template.thumbnails.ready.set(false);
+    ThumbnailsConfig.TopMargin = ImagesDiv.offsetTop;//position.top;
+    // console.log(`topMargin=${ThumbnailsConfig.TopMargin}`);
+    ImagesPerPage = parseInt((window.innerHeight - ThumbnailsConfig.TopMargin) / ThumbnailsConfig.Height) * ThumbnailsConfig.PerRow;
+    Template.thumbnails.ready.set(true);
+  } else {
+        Template.thumbnails.ready.set(true);
+  }
+}
+
+Template.thumbnails.ready = new ReactiveVar(false);
 Template.thumbnails.onCreated(function () {
   var template = this;
   template.tags = new ReactiveVar(null);
@@ -9,11 +26,12 @@ Template.thumbnails.onCreated(function () {
   // Meteor.call('tags',(err,res) => {
   //   if(err) console.error(err);else template.tags.set(res);
   // });
-
 });
 Template.thumbnails.onRendered(function () {
   var template = this;
   TagsImgId = null;
+  ImagesDiv = document.getElementById('images');
+  recalculateImagesPerPage();
   template.autorun(function thumbnailsAutorun() {
     ImageStart = parseInt(ImageStart);
     // console.log(`${template.view.name}.onCreated.autorun ImageStart=${ImageStart}`);
@@ -44,6 +62,7 @@ Template.thumbnails.onDestroyed(function () {
   if (template.debug) {
     console.log(this.view.name + '.destroyed');
   }
+  ImagesDiv = null;
 });
 Template.thumbnails.helpers({
   pages() {
@@ -63,7 +82,7 @@ Template.thumbnails.helpers({
     });
   },
   ready() {
-    return ThumbnailsHandle.ready();
+    return Template.thumbnails.ready.get() && ThumbnailsHandle && ThumbnailsHandle.ready();
   },
   imageid() {
     var img = Images.findOne();
@@ -141,9 +160,34 @@ Template.thumbnails_data.onRendered(function () {
 });
 
 Tracker.autorun(function subscribeThumbnails() {
-  Template.thumbnails.numberofimages = 0;
-  if (ThumbnailsHandle) ThumbnailsHandle.stop();
-  ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'), TagSearch.get(), ImagesPerPage, function () {
-    // console.log(`${Images.find().count()} thumbnails subscribed ${ThumbnailsHandle.subscriptionId}`);
-  });
+  const ready = Template.thumbnails.ready.get();
+  if(ready){
+    Template.thumbnails.numberofimages = 0;
+    if (ThumbnailsHandle) ThumbnailsHandle.stop();
+    // alert('subscribe thumbnails')
+    ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'), TagSearch.get(), ImagesPerPage, function () {
+      // Meteor.setTimeout(function(){
+        if(ImagesDiv) {
+          const height = ImagesDiv.clientHeight;
+          const MinHeight = ImagesDiv.dataset.MinHeight;
+          // only set new min-height if it has changed
+          if(MinHeight == undefined || MinHeight != height) {
+            // console.log(height, MinHeight);
+            ThumbnailsConfig.MinHeight = height;
+            ImagesDiv.dataset.MinHeight = ThumbnailsConfig.MinHeight;
+            ImagesDiv.style['min-height'] = `${ThumbnailsConfig.MinHeight}px`;
+          }
+        }
+      // },500)
+    });
+  }
+});
+
+const doneResizing = function(){
+  recalculateImagesPerPage();
+}
+var resizeId;
+$(window).resize(function(e){
+  clearTimeout(resizeId);
+  resizeId = setTimeout(doneResizing, 500);
 });

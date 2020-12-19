@@ -1,5 +1,8 @@
 import { onPageLoad } from "meteor/server-render";
-
+import { cookies, checkPrivateAccess } from '/imports/lib/loginToken';
+//
+// https://metatags.io/
+// 
 onPageLoad(sink => {
   const path = sink.request.url.path.split('/');
   if(path.length>2 && path[1] == 'image') {
@@ -9,7 +12,7 @@ onPageLoad(sink => {
       if (img) {
         const type = img.type.split('/').pop();
         console.log(`inject image ${id} meta tags`);
-        const imgurl = `http://images.buzzledom.com/thumbnail/${id}/img.${type}`;
+        const imgurl = `https://images.buzzledom.com/thumbnail/${id}/img.${type}`;
         sink.appendToHead(` <meta property="og:title" content="${img.name}"/>\n`);
         sink.appendToHead(` <meta property="og:type" content="${img.type}" />\n`);
         sink.appendToHead(` <meta property="og:url" content="https://images.buzzledom.com/image/${id}" />\n`);
@@ -26,10 +29,39 @@ onPageLoad(sink => {
 });
 
 Meteor.startup(function(){
+
   WebApp.connectHandlers.use('/api/json/hello', (req, res, next) => {
+    const json = {
+      loginToken: null,
+      hashedToken: null,
+      userId: null,
+      message: 'Success'
+    }
     console.log(`request method ${req.method}`, req.cookies);
+    json.loginToken = req.cookies?.meteor_login_token;
+    // get the user
+    if (Meteor.users) {
+      // check to make sure, we've the loginToken,
+      // otherwise a random user will fetched from the db
+      if (json.loginToken) {
+        json.hashedToken = Accounts._hashLoginToken(json.loginToken)
+        var query = { 'services.resume.loginTokens.hashedToken': json.hashedToken }
+        var options = { fields: { _id: 1 } }
+        var user = Meteor.users.findOne(query, options);
+        if (user) {
+          json.userId = user._id
+        } else {
+          json.message = `/api/json/hello no user for ${json.loginToken}`
+        }
+      } else {
+        json.message = `/api/json/hello meteor-login-token undefined`
+      }
+    } else {
+      json.message = `/api/json/hello Meteor.users does not exist`
+    }
+
     res.writeHead(200);
-    res.end(`Hello world from: ${Meteor.release}` + EJSON.stringify(req.query, { indent: 4 }));
+    res.end(`Hello world from: ${Meteor.release}` + EJSON.stringify(json, { indent: 4 }));
   });
   WebApp.connectHandlers.use('/api/json/images', (request, response, next) => {
     switch (request.method) {
@@ -108,10 +140,12 @@ Meteor.startup(function(){
       case 'GET':
         const id = request.url.split('/').pop();
         if (id) {
+          cookies = request.Cookies;
           const img = Images.findOne(id);
+          const loginToken = cookies.get('meteor_login_token');
           if (img) {
-            if (img && img.private) {
-              const message = 'This image is private';
+            if (checkPrivateAccess(img, loginToken)) {
+              const message = `The image ${id} is private for ${loginToken}`;
               response.writeHead(403);
               response.end(message);
             } else {
@@ -147,12 +181,14 @@ Meteor.startup(function(){
       case 'GET':
         const url = request.url.split('/');
         const id = url.length>0 ? url[1] : 'null';// request.url.split('/').pop();
+        cookies = request.Cookies;
         if (id) {
           const img = Images.findOne(id);
+          const loginToken = cookies.get('meteor_login_token');
           if (img) {
             console.log(`serve thumbnail for ${id} ${img.type}`)
-            if (img && img.private) {
-              const message = 'This image is private';
+            if (checkPrivateAccess(img, loginToken)) {
+              const message = `The image ${id} is private for ${loginToken}`;
               response.writeHead(403);
               response.end(message);
             } else {

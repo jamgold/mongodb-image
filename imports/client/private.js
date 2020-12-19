@@ -1,5 +1,5 @@
 import './private.html';
-import './tagit';
+import './thumbnails/tagit';
 console.log(__filename);
 Template.private.onCreated(function(){
   const instance = this;

@@ -1,11 +1,7 @@
 <template name="image">
 	{{#if img}} 
 		{{#with img}}
-			<div
-				class="collapse"
-				id="imageInfo"
-				aria-labelledby="imageInfoLabel"
-			>
+			<div class="collapse" id="imageInfo" aria-labelledby="imageInfoLabel">
 				<div class="card card-body">
 					{{>image_info
 						img=this 

@@ -6,6 +6,7 @@ import './jquery.tag-it.js';
 import './jquery.tagit.css';
 // import './tagit.ui-zendesk.css';
 import './index.html';
+console.log(__filename);
 
 Template.tagit.onCreated(function () {
   const instance = this;

@@ -1,5 +1,5 @@
 import './tags.html';
-import './tagit';
+import './thumbnails/tagit';
 Template.tags.onCreated(function () {
   const instance = this;
   instance.doAutorun = true;

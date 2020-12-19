@@ -1,5 +1,6 @@
 import './image.html';
 import './private';
+import { makeHash } from '/imports/lib/hash';
 console.log(__filename);
 Template.image.onCreated(function () {
   var instance = this;
@@ -56,7 +57,7 @@ Template.image.onRendered(function () {
       img.src = new ReactiveVar('/circle-loading-animation.gif');
       instance.img.set(img);
       // now call method to get src for id
-      Meteor.call('src', params.id, tagSearch, function (err, res) {
+      Meteor.call('src', params.id, tagSearch,async function (err, res) {
         if (err) {
           console.log(err);
         }
@@ -67,6 +68,18 @@ Template.image.onRendered(function () {
           instance.next.set(res.next);
           instance.prev.set(res.prev);
           instance.cssclasses.set(img.cssclasses);
+          Meteor.call('imageHash', img._id, (err,res) => {
+            if(err) console.error(err);
+            // else console.log(res);
+          })
+          // if (userId && (img.md5hash == undefined || img.md5hash.length<64)) {
+          //   const hash = await makeHash(res.src);
+          //   console.log(`newHash:${hash}`);
+          //   Images.update(img._id,{$set:{md5hash: hash}});
+          // }
+          // else {
+          //   console.log(`md5Hash:${img.md5hash} ${img.md5hash.length}`);
+          // }
         }
       });
       if (Roles.userIsInRole(Meteor.userId(), 'admin')) {
@@ -129,11 +142,11 @@ Template.image.helpers({
     if (image && image._id && image.src) {
       var update = false;
 
-      if (image.md5hash === undefined) {
-        console.log('Template.image.helpers.img md5hash missing');
-        image.md5hash = md5(image.src);
-        update = true;
-      }
+      // if (image.md5hash === undefined) {
+      //   console.log('Template.image.helpers.img md5hash missing');
+      //   image.md5hash = await makeHash(image.src);
+      //   update = true;
+      // }
       if (image.created === undefined) {
         console.log('Template.image.helpers.img created missing');
         image.created = new Date();

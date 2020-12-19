@@ -5,9 +5,10 @@
  <meta name="description" content="Images collection" />
  <meta name="author" content="Jan Hendrik Mangold" />
  <meta name="generator" content="Meteor 1.9" />
- <link rel="stylesheet" href="/bootstrap.min.css">
+ <link rel="icon" href="/favicon.ico" type="image/x-icon">
+ <!-- <link rel="stylesheet" href="/bootstrap.min.css"> -->
  <!-- <link rel="stylesheet" href="/glyphicons.min.css"> -->
- <script src="/bootstrap.min.js" defer></script>
+ <!-- <script src="/bootstrap.min.js" defer></script> -->
 </head>
 
 <body class="bootstrap"></body>
@@ -27,8 +28,9 @@ reader.onload = function(e) {
 <template name="jsonWell">
 		<p>This app now also supports two REST methods</p>
 		<p style="border:1px solid #ccc;padding: 1em">
-			<a target=_new href="/api/json/images/">/api/json/images/</a><br/>
-			<a target=_new href="/api/json/image/{{imageid}}">/api/json/image/<i>imageid</i></a>
+			<a target="api_json_hello" href="/api/json/hello?loginToken={{loginToken}}">/api/json/hello</a><br/>
+			<a target="api_json_images" href="/api/json/images/">/api/json/images/</a><br/>
+			<a target="api_json_image" href="/api/json/image/{{imageid}}">/api/json/image/<i>imageid</i></a>
 		</p>
 		both of which will return a JSON structure
 </template>

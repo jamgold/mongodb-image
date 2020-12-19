@@ -1,9 +1,9 @@
-import '/imports/lib/routes.js';
-import '/imports/client/tags.js';
-import '/imports/client/private.js';
-import '/imports/client/upload';
+import '/imports/lib/routes';
+import '/imports/lib/loginToken';
+import '/imports/client/tags';
 import 'hammerjs';
 import { FlowRouter } from 'meteor/ostrio:flow-router-extra';
+
 //
 // http://www.apimeme.com/
 //
@@ -96,6 +96,7 @@ Template.body.onRendered(function(){
   template.hammer
     .on('swipeleft', (e) => {
       const next = document.querySelector('a.next');
+      // alert('swipeleft')
       if(next) {
         next.click();
       } else {
@@ -110,6 +111,7 @@ Template.body.onRendered(function(){
     })
     .on('swiperight', (e) => {
       const prev = document.querySelector('a.prev');
+      // alert('swiperight')
       if (prev) {
         prev.click();
       } else {
@@ -161,6 +163,16 @@ Template.body.onRendered(function(){
 //     });
 //   }
 // });
+
+Template.jsonWell.onRendered(function(){
+  // const cookies = new Cookies();
+  // cookies.set('meteor_login_token', Meteor._localStorage.getItem('Meteor.loginToken'))
+})
+Template.jsonWell.helpers({
+  // loginToken(){
+  //   return Meteor._localStorage.getItem('Meteor.loginToken')
+  // }
+});
 
 Template.pagination.helpers({
   showPrevNext(){

@@ -24,7 +24,7 @@
 //         }
 //       }
 //       // console.log(query);
-//       const images = DBImages.find(query, options).fetch();
+//       const images = Images.find(query, options).fetch();
 //       const json = EJSON.stringify({
 //         images: images,
 //         count: images.length,
@@ -44,7 +44,7 @@
 //   switch (request.method) {
 //     case 'GET':
 //       // GET /webhooks/stripe
-//       const img = DBImages.findOne(params.id);
+//       const img = Images.findOne(params.id);
 //       if(img && img.private) {
 //         const message = 'This image is private';
 //         response.writeHead(403, {

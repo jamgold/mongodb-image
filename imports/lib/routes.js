@@ -4,26 +4,20 @@ import { FlowRouterMeta, FlowRouterTitle } from 'meteor/ostrio:flow-router-meta'
 import { LAYOUT } from '/imports/client/bootstrap';
 global.FlowRouter = FlowRouter;
 
-ThumbnailsMinHeight = null;
-
-calculateImagesPerPage = function() {
-  ImagesPerPage = parseInt((window.innerHeight - 120) / 150) * 6;
-
-  if (false && !ThumbnailsMinHeight) {
-  }
+ThumbnailsConfig = {
+  MinHeight: null,
+  TopMargin: 254,
+  Height: 160,
+  PerRow: 6
 }
+global.ThumbnailsConfig = ThumbnailsConfig;
+
 FlowRouter.route('/', {
   name: 'thumbnails',
   title: 'Images',
   async action(params) {
     import '/imports/client/thumbnails';
     this.render(LAYOUT, "thumbnails", {content: "thumbnails"});
-    Meteor.setTimeout(function () {
-      const images = $('#images');
-      ThumbnailsMinHeight = images.height();
-      images.css('minHeight', `${ThumbnailsMinHeight}px`);
-      console.log(`ThumbnailsMinHeight ${ThumbnailsMinHeight}`);
-    }, 2000)
   },
 });
 
@@ -123,9 +117,17 @@ adminRoutes.route('/users', {
 adminRoutes.route('/tags', {
   name: 'admin_tags',
   async action(params) {
-    // import 'meteor/jamgold:accounts-admin-ui-bootstrap-3';
     import '/imports/client/admin/tags';
     this.render(LAYOUT, "tag_admin", { content: "tag_admin" });
+  },
+});
+
+FlowRouter.route('/compare', {
+  name: 'compare',
+  title: 'Compare Picture',
+  async action(params) {
+    import '/imports/client/compare';
+    this.render(LAYOUT, "compare", { content: "compare" });
   },
 });
 
@@ -166,7 +168,3 @@ FlowRouter.route('*', {
 });
 
 global.flowRouterMeta = new FlowRouterMeta(FlowRouter);
-
-// Meteor.startup(function(){
-  calculateImagesPerPage()
-// })
