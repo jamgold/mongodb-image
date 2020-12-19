@@ -1,6 +1,10 @@
 import { HTTP } from 'meteor/http';
 import { check } from 'meteor/check';
 import '/imports/server/rest';
+// import '/imports/server/login';
+import { makeHash } from '/imports/lib/hash';
+
+const DEBUG = false
 
 const createQuery = function(query, tags) {
   if (tags !== undefined && tags.length > 0) {
@@ -49,6 +53,13 @@ Meteor.publish('thumbnails', function(imageStart, tags, limit){
   }
 });
 
+Meteor.publish('md5hash', function(md5hash){
+  return Images.find({md5hash: md5hash}, {
+    fields: { src: 0 }
+    , sort: { created: -1 }
+  });
+});
+
 Meteor.publish('image',function(id) {
   const self = this;
   const images = Images.find(id,{
@@ -87,10 +98,14 @@ Meteor.publish('user_images', function(skip,user,tags){
 });
 
 Meteor.publish(null, function(){
-  if(this.userId) {
-    return Meteor.roleAssignment.find({'user._id': this.userId});
+  if (this.userId) {
+    if(Roles.userIsInRole(this.userId,'admin')){
+      return Meteor.roleAssignment.find();
+    }else{
+      return Meteor.roleAssignment.find({ 'user._id': this.userId });
+    }
   } else {
-    return null;
+    this.ready()
   }
 });
 
@@ -110,10 +125,25 @@ Images.before.insert(function(userId, doc) {
   doc.user = userId;
   doc.order = Meteor.call('maxOrder') + 1;
   doc.created = new Date();
-  console.log(`Images inserting with order ${doc.order}`);
+  if (DEBUG) console.log(`Images inserting with order ${doc.order}`);
 });
 
 Meteor.methods({
+  imageHash: async function(id){
+    const image = Images.findOne(id);
+    if(image) {
+      if (image.md5hash == undefined || image.md5hash.length<64) {
+        const hash = await makeHash(image.src);
+        Images.update(id,{$set:{md5hash: hash.hash}})
+        // console.log(hash)
+        return hash.hash
+      } else {
+        return 'no update needed';
+      }
+    } else {
+      throw new Meteor.Error(404, `${id} image not found`, `${id} image not found`);
+    }
+  },
   count(tag){
     return Images.find({tags:{$in:[tag]}}).count()
   },
@@ -122,16 +152,14 @@ Meteor.methods({
     // const distinct = Meteor.wrapAsync(raw.distinct, raw);
     if(UseTagsCollection) {
       const tags = Tags.find({ tag: { $regex: search } }, { sort: { tag: 1 } }).fetch();
-      console.log(`${search} => ${tags}`);
+      if (DEBUG) console.log(`${search} => ${tags}`);
       return tags;
     } else {
       let tags = ImagesDistinct('tags');
-      // console.log(`tags.search ${search} in ${tags}`);
       if(search == undefined){
         return tags.sort();
       } else {
         const s = search != undefined ? search.toLowerCase() : search;
-        // console.log(`searching for ${s}`);
         return tags.filter((tag) => { return tag && tag.toLowerCase().includes(s) }).sort();
       }
     }
@@ -168,7 +196,6 @@ Meteor.methods({
     if (userId == undefined) userId = self.userId;
     let query = createQuery({ order: { $lt: order }, $or: [{ private: { $exists: 0 } }, { private: { $in: [userId] } }, { user: self.userId }] }, tags) ;
     let images = Images.find(query,{sort:{order:-1},limit:1}).fetch()
-    // console.log(`nextImage ${order} ${images.length}`, tags);
     if(images.length>0) return images[0]._id;else return null;
   },
   prevImage(order, tags, userId){
@@ -176,7 +203,6 @@ Meteor.methods({
     if(userId==undefined) userId = self.userId;
     let query = createQuery({ order: { $gt: order }, $or: [{ private: { $exists: 0 } }, { private: { $in: [userId] } }, { user: self.userId }]}, tags);
     let images =  Images.find(query,{sort:{order:1},limit:1}).fetch();
-    // console.log(`prevImage ${order} ${images.length}`, tags);
     if(images.length>0) return images[0]._id;else return null;
   },
   contributors: function() {
@@ -185,11 +211,7 @@ Meteor.methods({
     const raw = Images.rawCollection();
     const distinct = Meteor.wrapAsync(raw.distinct, raw);
 
-    // console.time("allImageIds");
-    // res.images = Images.find({thumbnail:{$exists:1}, },{sort:{created: -1 } } ).fetch().map((image) => {return image._id;});
-    // console.timeEnd("allImageIds");
-
-    console.time("contributors");
+    if (DEBUG) console.time("contributors");
     res.contributors = Meteor.users.find({_id:{$in:distinct('user')}}).fetch().map((u) => {
       var email = u.emails[0].address; //.replace(/[@\.]+/g,' ');
       var count = Images.find({user: u._id}).count();
@@ -202,7 +224,7 @@ Meteor.methods({
       };
       return r;
     });
-    console.timeEnd("contributors");
+    if (DEBUG) console.timeEnd("contributors");
 
     return res;
   },
@@ -234,7 +256,6 @@ Meteor.methods({
     return exists != undefined;
   },
   user_name: function(id) {
-    // console.log(`user_name for ${id} called by ${this.userId}`);
     // if(this.isSimulation) return {};
     // else {
       if (this.userId == id || Roles.userIsInRole(this.userId, ['admin'])) {
@@ -287,32 +308,31 @@ Meteor.methods({
   reorder(startup){
     if (Roles.userIsInRole(this.userId, ['admin']) || startup == 'startup') {
       let order = 1;
-      console.time("updating order");
+      if (DEBUG) console.time("updating order");
       Images.find({},{sort:{created:1}}).forEach((image) => {
         Images.update(image._id,{$set:{order: order++}});
       });
-      console.timeEnd("updating order");
+      if (DEBUG) console.timeEnd("updating order");
     }
   },
   getURL: function(url){
     try {
-      // console.log(HTTP.call('HEAD', url,{npmRequestOptions: { encoding: null }}))
       var response = HTTP.call('GET', url, { npmRequestOptions: { encoding: null } });
       var content_type = response.headers['content-type'];
       var content_length = response.headers['content-length'];
+      var name = url.split('/').pop();
       if (content_type.match(/^image/)) {
-        console.log(`cropUploaderUrl ${content_type} of ${content_length} bytes`);
+        if (DEBUG) console.log(`cropUploaderUrl ${content_type} of ${content_length} bytes`);
         return {
           size: content_length,
-          name: url,
+          name: name,
           type: content_type,
-          data: "data:" + content_type + ";base64," + new Buffer(response.content).toString('base64')
+          data: "data:" + content_type + ";base64," + Buffer.from(response.content).toString('base64')
         }
       } else {
         throw new Meteor.Error(500, 'wrong content type', `the url "${url}" returned ${content_type}`);
       }
     } catch (e) {
-      // console.log(e);
       throw new Meteor.Error(e.statusCode, 'url wrong', `<p>the URL ${url} could not be accessed:</p><pre>${e}</pre>`);
     }
   },
@@ -385,6 +405,7 @@ Meteor.methods({
 Meteor.startup(function(){
   Images._ensureIndex('created');
   Images._ensureIndex('tags');
+  Images._ensureIndex('md5hash');
   Tags._ensureIndex('tag')
   var assets = EJSON.parse(Assets.getText('admin.json'));
   var admin_user = assets.admin_user;
@@ -407,12 +428,11 @@ Meteor.startup(function(){
         var tagids = [];
         image.tags.forEach((tag) => {
           var tig = Tags.upsert({ tag: tag }, { $set: { tag: tag } });
-          console.log(tig);
           if (tig.insertedId) {
-            console.log(`${tag} = ${tig.insertedId}`, tig);
+            if (DEBUG) console.log(`${tag} = ${tig.insertedId}`, tig);
             tagids.push(tig.insertedId);
           } else {
-            console.log(`${tag} already exists`);
+            if (DEBUG) console.log(`${tag} already exists`);
             tagids.push(Tags.findOne({ tag: tag })._id);
           }
         })
@@ -420,5 +440,11 @@ Meteor.startup(function(){
       })
     }
   }
-});
 
+  Images.find({ $where: "this.md5hash.length < 64" }).forEach(async function(image){
+    const id = image._id;
+    const hash = await makeHash(image.src);
+    if (DEBUG) console.log(`${image._id} new hash ${hash.hash}`);
+    Images.update(id, { $set: { md5hash: hash.hash } })
+  })
+});
