@@ -1,6 +1,6 @@
 <template name="user_admin">
     {{#if isInRole 'admin'}}
-        {{> accountsAdmin hideFilters=true}}
+        {{> accountsAdmin hideFilterStatus=true}}
     {{else}}
         Must be admin to see this...
     {{/if}}
