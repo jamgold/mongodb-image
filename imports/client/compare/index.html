@@ -1,0 +1,40 @@
+<template name='compare'>
+  <div class="jumbotron">
+    <h1>Compare Pictures</h1>
+  </div>
+  <div class="row">
+    <div class="col-lg-5">
+      <img id="crop_img" class="img-fluid">
+      <button class="btn btn-info reset hidden">Reset</button>
+      <div id="dropzone" class="mongodb-image-droppable">
+        <h1 class="dnd-instructions">Drag & Drop image or Click</h1>
+        <img class="loading hidden" style="max-width: 50%" src="/loading.gif">
+      </div>
+      <input id="fileinput" name="fileinput" multiple="true" type="file" style="display:none;">
+      {{#if allowUrl}}
+      <h4>or</h4>
+      <div class="input-group">
+        <input type="text" class="form-control" id="image-url" autocomplete="false" placeholder="Enter URL to image">
+        <span class="input-group-btn">
+          <button class="btn btn-success upload-url">Upload</button>
+        </span>
+      </div>
+      {{/if}}
+    </div>
+    <div class="col-lg-7">
+      <div class="row thumbnails" id="images">
+        {{#if ready}}
+          {{#each images}}
+            {{>thumbnail}}
+          {{/each}}
+          {{#unless imageCount}}
+          <center>
+            <h1>No images found</h1>
+            <button class="btn btn-success upload">Upload</button>
+          </center>
+          {{/unless}}
+        {{/if}}
+      </div>
+    </div>
+  </div>
+</template>
