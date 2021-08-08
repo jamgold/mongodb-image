@@ -1,4 +1,4 @@
-console.log(__filename);
+// console.log(__filename);
 import './crop.html';
 import 'croppie/croppie.css';
 import 'croppie/croppie.min.js';
@@ -51,7 +51,7 @@ Template.crop.events({
       tags.push(tag);
       TagSearch.set(tags);
       Session.set('imageStart', 0);
-      FlowRouter.go('/')
+      // FlowRouter.go('/')
     }
   },
 });
@@ -70,7 +70,7 @@ Template.croppie.onRendered(function(){
   instance.image = instance.find('#croppie');
   instance.cropped = instance.find('#cropped');
   // console.log(`${instance.view.name}.onRendered`, instance.data);
-  const boundary = window.isMobile ? {width: 300, height: 300} : { width: 500, height: 500 };
+  const boundary = Session.get('isMobile') ? {width: 300, height: 300} : { width: 500, height: 500 };
   instance.croppie = new Croppie(instance.image, {
     // The inner container of the coppie. The visible part of the image
     viewport: { width: 200, height: 200 },
@@ -95,7 +95,7 @@ Template.croppie.onRendered(function(){
       const img = Images.findOne(instance.data.id);
       if (img) {
         // console.log(`${instance.view.name}.onCreated subscribed`)
-        details = img.details ? img.details : {};
+        details = img.crop ? img.crop : {};
         // details.src = img.thumbnail;
         // Valid options are:
         // 1 unchanged
@@ -158,11 +158,10 @@ Template.croppie.events({
     Images.update(instance.data.id, {
       $set: {
         thumbnail: image,
-        details: instance.details,
+        crop: instance.details,
       }
     }, (err, u) => {
-        if (err) Bootstrap3boilerplate.alert('danger', `update image failed with ${err.message}`, true);
-        // else Bootstrap3boilerplate.alert('info', `updated thumbnail ${u}`, true);
+        if (err) Bootstrap3boilerplate.alert('danger', `update image failed with ${err.message}`, false);
     });
     if(event.currentTarget.classList.contains('list')){
       FlowRouter.go(`/`);

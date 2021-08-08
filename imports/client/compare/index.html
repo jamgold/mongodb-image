@@ -1,15 +1,21 @@
 <template name='compare'>
   <div class="jumbotron">
-    <h1>Compare Pictures</h1>
-  </div>
+    <h1>
+      <div class="btn-toolbar float-right" role="toolbar">
+        <button class="btn btn-info reset" disabled>Reset</button>
+        <button class="btn btn-success next" disabled>Next</button>    
+      </div>
+      Compare Pictures
+    </h1>
+</div>
   <div class="row">
     <div class="col-lg-5">
-      <img id="crop_img" class="img-fluid">
-      <button class="btn btn-info reset hidden">Reset</button>
       <div id="dropzone" class="mongodb-image-droppable">
+        <img id="crop_img" class="img-fluid">
         <h1 class="dnd-instructions">Drag & Drop image or Click</h1>
-        <img class="loading hidden" style="max-width: 50%" src="/loading.gif">
+        <img class="loading hidden" xstyle="max-width: 50%" src="/loading.gif">
       </div>
+
       <input id="fileinput" name="fileinput" multiple="true" type="file" style="display:none;">
       {{#if allowUrl}}
       <h4>or</h4>
@@ -24,12 +30,12 @@
     <div class="col-lg-7">
       <div class="row thumbnails" id="images">
         {{#if ready}}
-          {{#each images}}
-            {{>thumbnail}}
+          {{#each image in images}}
+            {{>thumbnail image=image}}
           {{/each}}
-          {{#unless imageCount}}
+          {{#unless imagesExist}}
           <center>
-            <h1>No images found</h1>
+            <h1>Image Not Found</h1>
             <button class="btn btn-success upload">Upload</button>
           </center>
           {{/unless}}

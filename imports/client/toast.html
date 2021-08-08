@@ -1,0 +1,18 @@
+<template name="toast">
+  <div class="toast ml-auto bg-{{type}}" role="alert" data-alert-id="{{alertid}}">
+    <div class="toast-header">
+      <!-- <img src="..." class="rounded mr-2" alt="..."> -->
+      <span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
+      <strong class="mr-auto">{{type}}</strong>
+      <small>{{time}}</small>
+      {{!unless autohide}}
+      <button type="button" class="ml-2 mb-1 closeAlert" data-dismiss="toast" aria-label="Close">
+        <span aria-hidden="true">&times;</span>
+      </button>
+      {{!unless}}
+    </div>
+    <div class="toast-body bg-{{background}}">
+      {{{text}}}
+    </div>
+  </div>
+</template>

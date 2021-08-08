@@ -1,35 +1,88 @@
-import { onPageLoad } from "meteor/server-render";
-import { cookies, checkPrivateAccess } from '/imports/lib/loginToken';
+import { Meteor } from 'meteor/meteor'
+import { onPageLoad } from "meteor/server-render"
+import { cookies, checkPrivateAccess } from '/imports/lib/loginToken'
 //
 // https://metatags.io/
 // 
 onPageLoad(sink => {
   const path = sink.request.url.path.split('/');
-  if(path.length>2 && path[1] == 'image') {
-    const id = path[2];
-    if (id) {
-      const img = Images.findOne(id);
-      if (img) {
-        const type = img.type.split('/').pop();
-        console.log(`inject image ${id} meta tags`);
-        const imgurl = `https://images.buzzledom.com/thumbnail/${id}/img.${type}`;
-        sink.appendToHead(` <meta property="og:title" content="${img.name}"/>\n`);
-        sink.appendToHead(` <meta property="og:type" content="${img.type}" />\n`);
-        sink.appendToHead(` <meta property="og:url" content="https://images.buzzledom.com/image/${id}" />\n`);
-        sink.appendToHead(` <meta property="og:image" content="${imgurl}" />\n`);
-        sink.appendToHead(` <meta property="og:image:type" content="${img.type}">\n`);
-        sink.appendToHead(` <meta property="og:image:width" content="200">\n`);
-        sink.appendToHead(` <meta property="og:image:height" content="200">\n`);
-        sink.appendToHead(` <meta property="og:image:alt" content="image thumbnail">\n`);
-        sink.appendToHead(` <meta property="twitter:image" content="${imgurl}" />\n`);
-        sink.appendToHead(` <meta property="twitter:card" content="summary_large_image"/>\n`);
-      }
+  const root = process.env.ROOT_URL
+  let id = ''
+  if(path.length>2) {
+    // console.log(`onPageLoad sink "${path[1]}"`)
+    switch (path[1]) {
+      case 'image':
+        id = path[2];
+        if (id) {
+          const img = Images.findOne(id);
+          if (img) {
+            const type = img.type.split('/').pop();
+            // console.log(`inject image ${id} meta tags`);
+            const imgurl = `${root}/thumbnail/${id}/img.${type}`;
+            sink.appendToHead(` <meta property="og:title" content="${img.name}"/>\n`);
+            sink.appendToHead(` <meta property="og:type" content="${img.type}" />\n`);
+            sink.appendToHead(` <meta property="og:url" content="${root}/image/${id}" />\n`);
+            sink.appendToHead(` <meta property="og:image" content="${imgurl}" />\n`);
+            sink.appendToHead(` <meta property="og:image:type" content="${img.type}">\n`);
+            sink.appendToHead(` <meta property="og:image:width" content="200">\n`);
+            sink.appendToHead(` <meta property="og:image:height" content="200">\n`);
+            sink.appendToHead(` <meta property="og:image:alt" content="image thumbnail">\n`);
+            sink.appendToHead(` <meta property="twitter:image" content="${imgurl}" />\n`);
+            sink.appendToHead(` <meta property="twitter:card" content="summary_large_image"/>\n`);
+          }
+        } else {
+          console.log(`onPageLoad ${path[1]} could not find image ${id}`)
+        }
+      break
+
+      case 'Xrandom':
+        let query = { thumbnail:{ $exists:1} ,'$or':[ {private: {$exists:0}},{private: null} ]}
+        if (url.length>0 && url[1]) query['tags'] = {'$all': url[1].split(',')}
+        const ids = Images.find(query,{fields:{_id:1}}).fetch().map((i) => {return i._id})
+        // console.log(EJSON.stringify(query), ids)
+        id = random( ids )
+        console.log(`onPageLoad.sink random: ${root}/image/${id}`, sink)
+        if (id) {
+          const img = Images.findOne(id);
+          if (img) {
+            const type = img.type.split('/').pop();
+            // console.log(`inject image ${id} meta tags`);
+            const imgurl = `${root}/thumbnail/${id}/img.${type}`;
+            // console.log(`serve thumbnail for ${id} ${img.type}`)
+            // replace the data:...;base64, crap
+            const base64 = img.thumbnail.replace(/^data:.*;base64,/, "");
+            // create a buffer from the data
+            const buff = Buffer.from(base64, 'base64');
+            // const ext = img.type.split('/').pop();
+            sink.appendToHead(` <meta property="og:title" content="${img.name}"/>\n`);
+            sink.appendToHead(` <meta property="og:type" content="${img.type}" />\n`);
+            sink.appendToHead(` <meta property="og:url" content="${root}/image/${id}" />\n`);
+            sink.appendToHead(` <meta property="og:image" content="${imgurl}" />\n`);
+            sink.appendToHead(` <meta property="og:image:type" content="${img.type}">\n`);
+            sink.appendToHead(` <meta property="og:image:width" content="200">\n`);
+            sink.appendToHead(` <meta property="og:image:height" content="200">\n`);
+            sink.appendToHead(` <meta property="og:image:alt" content="image thumbnail">\n`);
+            sink.appendToHead(` <meta property="twitter:image" content="${imgurl}" />\n`);
+            sink.appendToHead(` <meta property="twitter:card" content="summary_large_image"/>\n`);
+
+            // sink.appendToHead(`Content-Length: ${buff.length}`)
+            // sink.appendToHead(`Content-Type: ${img.type}`)
+            sink.appendToHead(`Location: ${root}/image/${id}`)            
+            // HTTP response.end takes a buffer as argument !!!!
+            // sink.response.end(buff, 'utf8')
+          }
+        }
+        break
     }
   }
 });
 
-Meteor.startup(function(){
+const random = function randomArrayItem(a) {
+  const i = Math.floor(Math.random() * a.length);
+  return a.splice(i, 1).toString();
+}
 
+Meteor.startup(function(){
   WebApp.connectHandlers.use('/api/json/hello', (req, res, next) => {
     const json = {
       loginToken: null,
@@ -138,7 +191,8 @@ Meteor.startup(function(){
   WebApp.connectHandlers.use('/download', async function (request, response, next) {
     switch (request.method) {
       case 'GET':
-        const id = request.url.split('/').pop();
+        const id = request.url.split('/').pop()
+        console.log(`${request.method} image ${id}`)
         if (id) {
           cookies = request.Cookies;
           const img = Images.findOne(id);
@@ -186,7 +240,7 @@ Meteor.startup(function(){
           const img = Images.findOne(id);
           const loginToken = cookies.get('meteor_login_token');
           if (img) {
-            console.log(`serve thumbnail for ${id} ${img.type}`)
+            // console.log(`serve thumbnail for ${id} ${img.type}`)
             if (checkPrivateAccess(img, loginToken)) {
               const message = `The image ${id} is private for ${loginToken}`;
               response.writeHead(403);
@@ -216,4 +270,52 @@ Meteor.startup(function(){
         break;
     }
   });
+  WebApp.connectHandlers.use('/random', async function (request, response, next) {
+    // switch (request.method) {
+      //case 'GET':
+        const root = process.env.ROOT_URL
+        const url = request.url.split('/')
+        // const queryObject = url.parse(request.url,true).query;
+        const tags = url.filter((u)=> u.match(/^tags=/))
+        const noredirect = url.filter((u) => u=='noredirect')
+        const html_code = noredirect.length ? 200 : 302
+        // console.log( html_code )
+        let query = { thumbnail:{ $exists:1} ,'$or':[ {private: {$exists:0}},{private: null} ]}
+        if (tags && tags.length>0) {
+          const t = tags[0].split('=')
+          if (t.length>0)
+          query['tags'] = {'$all': t[1].split(',')}
+        }
+        const ids = Images.find(query,{fields:{_id:1}}).fetch().map((i) => {return i._id})
+        const id = random( ids )
+        if (DEBUG) console.log(`connectHandler random ${root}/image/${id}`, EJSON.stringify(query), ids)
+        if (id) {
+          const img = Images.findOne(id);
+          const loginToken = cookies.get('meteor_login_token');
+          if (img) {
+            // console.log(`serve thumbnail for ${id} ${img.type}`)
+            // replace the data:...;base64, crap
+            const base64 = img.thumbnail.replace(/^data:.*;base64,/, "");
+            // create a buffer from the data
+            const buff = Buffer.from(base64, 'base64');
+            // const ext = img.type.split('/').pop();
+            response.writeHead(html_code, {
+              'Content-Length': buff.length,
+              'Content-Type': img.type,
+              'Location': `${root}/image/${id}`,
+            });
+            // HTTP response.end takes a buffer as argument !!!!
+            response.end(buff, 'utf8');
+          } else {
+            response.writeHead(404);
+            response.end(`image with id ${id} not found`, url);
+            console.log(`image with id ${id} not found`, url);
+          }
+        } else {
+          response.writeHead(500);
+          response.end('Please provide the image id '+id);
+        }
+        // break;
+    // }
+  })
 })

@@ -1,37 +1,54 @@
-import '/imports/client/upload';
-import './thumbnails.html';
-import './thumbnail.js';
-console.log(__filename);
+import './thumbnails.html'
+import './thumbnail.js'
+import isMobile from 'ismobilejs/src/index.ts'
+import { TAG_QUERY_SEPARATOR, tagQuery } from '/imports/lib/query'
+// console.log(__filename);
 
-ImagesDiv = null;
+ImagesDiv = null
 Mobile = navigator.userAgent.match(/Mobile/)
 
+ThumbnailsConfig = {
+  MinHeight: null,
+  TopMargin: 50,
+  Height: 120,
+  PerRow: 6,
+}
+global.ThumbnailsConfig = ThumbnailsConfig;
+
 const recalculateImagesPerPage = function(){
-  if(ImagesDiv && !Mobile){
+  Template.thumbnails.ready.set(false)
+  ImagesPerPage = 20
+  Template.thumbnails.ready.set(true)
+  return
+  if(ImagesDiv && !Session.get('isMobile')) {
     Template.thumbnails.ready.set(false);
-    ThumbnailsConfig.TopMargin = ImagesDiv.offsetTop;//position.top;
-    // console.log(`topMargin=${ThumbnailsConfig.TopMargin}`);
-    ImagesPerPage = parseInt((window.innerHeight - ThumbnailsConfig.TopMargin) / ThumbnailsConfig.Height) * ThumbnailsConfig.PerRow;
-    Template.thumbnails.ready.set(true);
+    const main = document.getElementsByTagName('main')[0]
+    const X = main.clientHeight
+    // ThumbnailsConfig.TopMargin = ImagesDiv.offsetTop
+    // document.getElementById('images').style.minHeight = `${X + 60}px`
+    ImagesPerPage = parseInt((X - ThumbnailsConfig.TopMargin) / ThumbnailsConfig.Height) * ThumbnailsConfig.PerRow
+    if(ImagesPerPage>100) ImagesPerPage = 100
+    Template.thumbnails.ready.set(true)
+    console.info(`${X} ImagesPerPage ${ImagesPerPage}`)
   } else {
-        Template.thumbnails.ready.set(true);
+    Template.thumbnails.ready.set(false);
+    ImagesPerPage = 18
+    Template.thumbnails.ready.set(true)
   }
 }
 
 Template.thumbnails.ready = new ReactiveVar(false);
 Template.thumbnails.onCreated(function () {
-  var template = this;
-  template.tags = new ReactiveVar(null);
+  const template = this;
   template.pages = new ReactiveVar([]);
-  // Meteor.call('tags',(err,res) => {
-  //   if(err) console.error(err);else template.tags.set(res);
-  // });
 });
 Template.thumbnails.onRendered(function () {
   var template = this;
   TagsImgId = null;
   ImagesDiv = document.getElementById('images');
-  recalculateImagesPerPage();
+
+  // recalculateImagesPerPage();
+
   template.autorun(function thumbnailsAutorun() {
     ImageStart = parseInt(ImageStart);
     // console.log(`${template.view.name}.onCreated.autorun ImageStart=${ImageStart}`);
@@ -56,6 +73,8 @@ Template.thumbnails.onRendered(function () {
     template.pages.set(pages);
     template.$(`li[data-start="${ImageStart}"]`).addClass('active');
   });
+
+  Session.set('isMobile', isMobile(navigator.userAgent).any)
 });
 Template.thumbnails.onDestroyed(function () {
   var template = this;
@@ -93,9 +112,26 @@ Template.thumbnails.helpers({
   // },
   tagged() {
     return TagSearch.get();
-  }
+  },
+  canUpload(){
+    const userId = Meteor.userId()
+    return userId && !Roles.userIsInRole('banned')
+  },
+  showPrevNext(){
+    const pages = Template.instance().pages.get();
+    return pages && pages.length>1;
+  },
 });
 Template.thumbnails.events({
+  'shown.bs.collapse #tagSearchCollaps, hidden.bs.collapse #tagSearchCollaps'(e, t) {
+    const type = e.type
+    if (type == 'shown') {
+      Session.set('tagCollapser','<span title="Hide" class="glyphicon glyphicon-eye-close" aria-hidden="true"></span>')
+      window.scrollTo(0,0)
+    } else {
+      Session.set('tagCollapser', '<span title="Show" class="glyphicon glyphicon-eye-open" aria-hidden="true"></span>')
+    }
+  },
   'click .pagination li a.page'(e, t) {
     // console.log('click .pagination li a');
     t.$('.pagination li').removeClass('active');
@@ -124,6 +160,7 @@ Template.thumbnails.events({
     }
   },
   'click span.present-tags .tag'(event, instance) {
+    event.preventDefault();
     var tags = TagSearch.get();
     const tag = event.currentTarget.dataset.tag;
     if (tags.indexOf(tag < 0)) {
@@ -133,14 +170,11 @@ Template.thumbnails.events({
       Session.set('imageStart', 0);
     }
   },
-  // 'click .uploadModal'(e,t) {
-  //   Bootstrap3boilerplate.Modal.show();
-  // },
 });
 
 Template.thumbnails_data.onRendered(function () {
   const instance = this;
-  if(isMobile) {
+  if(Session.get('isMobile')) {
     const hash = Session.get('navbarUrl').replace('/#', '');//window.location.hash.replace('#', '');
     if (hash) {
       Meteor.setTimeout(function () {
@@ -157,37 +191,92 @@ Template.thumbnails_data.onRendered(function () {
       console.log(`${instance.view.name}.onRendered no hash ${window.location.hash}`);
     }
   }
+  // document.getElementsByTagName('body')[0].style.height = ''
+  // Bootstrap3boilerplate.alert('info',   document.getElementsByTagName('body')[0].style.overflow )
 });
 
-Tracker.autorun(function subscribeThumbnails() {
-  const ready = Template.thumbnails.ready.get();
-  if(ready){
-    Template.thumbnails.numberofimages = 0;
-    if (ThumbnailsHandle) ThumbnailsHandle.stop();
-    // alert('subscribe thumbnails')
-    ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'), TagSearch.get(), ImagesPerPage, function () {
-      // Meteor.setTimeout(function(){
-        if(ImagesDiv) {
-          const height = ImagesDiv.clientHeight;
-          const MinHeight = ImagesDiv.dataset.MinHeight;
-          // only set new min-height if it has changed
-          if(MinHeight == undefined || MinHeight != height) {
-            // console.log(height, MinHeight);
-            ThumbnailsConfig.MinHeight = height;
-            ImagesDiv.dataset.MinHeight = ThumbnailsConfig.MinHeight;
-            ImagesDiv.style['min-height'] = `${ThumbnailsConfig.MinHeight}px`;
-          }
-        }
-      // },500)
-    });
+Tracker.autorun(function tagSearch(c) {
+  const tags = TagSearch.get()
+  // const path = FlowRouter.current().path
+  const firstRun = c.firstRun
+  const recomputing = c._recomputing
+  const invalidated = c.invalidated
+  if(!firstRun && recomputing) {
+    if(tags.length > 0) {
+      if (DEBUG) console.log(`tagSearch.autorun tags=${tags}, length=${tags.length}, firstRun=${firstRun}, invalidated=${invalidated}, recomputing=${recomputing}`,c)
+      FlowRouter.go('/',{}, {tags: tagQuery(tags) } )
+    } else {
+      // console.log(`tagSearch goto /`)
+      FlowRouter.go('/')
+    }
   }
+})
+
+//
+// define this outside of autorun since it triggers
+//
+// $uploadTags = $('#new_image_tags')
+
+Tracker.autorun(function uploadTagsAutorun(c) {
+  const tags = TagSearch.get()
+  const firstRun = c.firstRun
+  const recomputing = c._recomputing
+  const invalidated = c.invalidated
+  // const $uploadTags = $(document.getElementById('new_image_tags'))
+  const $uploadTags = $('#new_image_tags')
+  if ($uploadTags && (firstRun || recomputing || invalidated)) {
+    let uTags = $uploadTags.tagit('assignedTags')
+    if (!Array.isArray(uTags)) uTags = []
+    if(tags.sort().join(',') != uTags.sort().join(',') ) {
+      if (DEBUG) console.log(`uploadTagsAutorun tags=${tags} (${tags.length}),uTags=${uTags}, invalidated=${invalidated}, recomputing=${recomputing}`, $uploadTags)
+      if (tags.length > 0) {
+        $uploadTags.tagit('removeAll')
+        tags.forEach((tag) => {
+          if (DEBUG) console.log(`uploadTags createTag ${tag}`)
+          $uploadTags.tagit('createTag', tag)
+        })
+      } else {
+        if (DEBUG) console.log(`uploadTagsAutorun removeAll`)
+        $uploadTags.tagit('removeAll')
+      }
+    }
+  }
+})
+Tracker.autorun(function subscribeThumbnails(c) {
+  Template.thumbnails.numberofimages = 0
+  if (ThumbnailsHandle) ThumbnailsHandle.stop()
+  if (DEBUG) console.log(`autorun.subscribeThumbnails`)
+  ThumbnailsHandle = Meteor.subscribe('thumbnails', Session.get('imageStart'), TagSearch.get(), ImagesPerPage, function () {
+    if(ImagesDiv) {
+      const height = ImagesDiv.clientHeight
+      const MinHeight = ImagesDiv.dataset.MinHeight
+      // only set new min-height if it has changed
+      if(MinHeight == undefined || MinHeight != height) {
+        // console.log(height, MinHeight)
+        ThumbnailsConfig.MinHeight = height
+        // ImagesDiv.dataset.MinHeight = ThumbnailsConfig.MinHeight
+        // ImagesDiv.style['min-height'] = `${ThumbnailsConfig.MinHeight}px`
+      }
+    }
+    Template.thumbnails.ready.set(true)
+  });
 });
 
 const doneResizing = function(){
   recalculateImagesPerPage();
 }
-var resizeId;
-$(window).resize(function(e){
-  clearTimeout(resizeId);
-  resizeId = setTimeout(doneResizing, 500);
-});
+
+// var resizeId;
+// $(window).resize(function(e){
+//   clearTimeout(resizeId);
+//   resizeId = setTimeout(doneResizing, 500);
+// });
+
+Meteor.startup(function startupQuery(){
+  const query = FlowRouter.current().queryParams
+  if (query && 'tags' in query && query.tags) {
+    const tags = query.tags
+    console.log(`startupQuery tags=${tags}`)
+    TagSearch.set(unescape(tags).split(TAG_QUERY_SEPARATOR))
+  }
+})

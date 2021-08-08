@@ -6,7 +6,7 @@ import './jquery.tag-it.js';
 import './jquery.tagit.css';
 // import './tagit.ui-zendesk.css';
 import './index.html';
-console.log(__filename);
+// console.log(__filename);
 
 Template.tagit.onCreated(function () {
   const instance = this;
@@ -18,7 +18,7 @@ Template.tagit.onCreated(function () {
       try{
         instance.options = EJSON.parse(instance.data.options);
       }catch(err){
-        instance.options = {};console.error('Error parsing tagit optioins',err);
+        instance.options = {};console.error('Error parsing tagit options',err);
       }
     }else{
       instance.options = instance.data.options;
@@ -27,6 +27,7 @@ Template.tagit.onCreated(function () {
   if(instance.data.title) {
     instance.options.placeholderText = instance.data.title;
   }
+  // console.log(`${instance.view.name}.onCreated`, instance)
 });
 Template.tagit.onRendered(function () {
   const instance = this;
@@ -56,4 +57,7 @@ Template.tagit.helpers({
   },
 });
 Template.tagit.events({
+  'click .tag'(e,t){
+    if(DEBUG) console.log(`.tag`,e.currentTarget)
+  }
 });

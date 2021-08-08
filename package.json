@@ -5,21 +5,21 @@
     "start": "meteor run"
   },
   "dependencies": {
-    "@babel/runtime": "^7.12.5",
+    "@babel/runtime": "^7.13.17",
     "babel-runtime": "^6.26.0",
-    "bcrypt": "^4.0.1",
-    "bootstrap": "^4.5.3",
+    "bcrypt": "^5.0.0",
+    "bootstrap": "^4.6.0",
     "croppie": "^2.6.5",
-    "glyphicons-only-bootstrap": "^1.0.1",
     "hammerjs": "^2.0.8",
-    "image-hash": "^3.5.1",
+    "image-hash": "^4.0.1",
     "install": "^0.13.0",
     "ismobilejs": "^1.1.1",
-    "jquery": "^3.5.1",
+    "jpeg-js": "^0.4.3",
+    "jquery": "^3.6.0",
     "jquery-ui-dist": "^1.12.1",
     "md5": "^2.3.0",
-    "meteor-node-stubs": "^1.0.1",
-    "node-image-hash": "^1.0.7",
+    "meteor-node-stubs": "^1.0.3",
+    "node-image-hash": "^1.1.0",
     "popper.js": "^1.16.1"
   }
 }

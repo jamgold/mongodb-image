@@ -1,12 +1,13 @@
 import './tag_admin.html';
-console.log(__filename);
+import { InvalidTags } from '/imports/lib/tags'
+// console.log(__filename);
 Template.tags_admin.onCreated(function(){
   const instance = this;
   instance.tags = ReactiveVar([]);
   instance.tag = ReactiveVar('');
   instance.count = ReactiveVar('');
   Meteor.call('tags', (err, tags) => {
-    if (err) Bootstrap3boilerplate.alert('danger', `${err.message}`, true);
+    if (err) Bootstrap3boilerplate.alert('danger', `${err.message}`, false);
     else instance.tags.set(tags);
   })
   instance.autorun(function(){
@@ -39,6 +40,9 @@ Template.tags_admin.helpers({
   disabled(){
     return Template.instance().tag.get() == null ? 'disabled' : '';
   },
+  InvalidTags(){
+    return InvalidTags.join(', ')
+  },
 });
 Template.tags_admin.events({
   'click .tag'(event, instance){
@@ -55,7 +59,7 @@ Template.tags_admin.events({
     var newName = instance.newName.value;
     if(oldName != newName) {
       Meteor.call('update_tag', oldName, newName, (err, res) => {
-        if (err) Bootstrap3boilerplate.alert('danger', `${err.message}`, true);
+        if (err) Bootstrap3boilerplate.alert('danger', `${err.message}`, false);
         else {
           Bootstrap3boilerplate.alert('info', `Updated ${res.count} Images`, true);
           instance.tags.set(res.tags);
@@ -64,7 +68,7 @@ Template.tags_admin.events({
         }
       });
     } else {
-      Bootstrap3boilerplate.alert('danger', `Old and new tag name must be different`, true);
+      Bootstrap3boilerplate.alert('danger', `Old and new tag name must be different`, false);
     }
   },
 });

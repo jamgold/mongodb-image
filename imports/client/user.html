@@ -26,8 +26,8 @@
 				<div class="col-lg-9">
 					<div class="row">
 						{{#if ready}} {{!Template.subscriptionsReady}}
-							{{#each images}}
-								{{>thumbnail}}
+							{{#each image in images}}
+								{{>thumbnail image=image}}
 							{{/each}}
 						{{else}}
 							{{>thumbnails_loading}}
@@ -38,8 +38,8 @@
 		{{else}}
 			<div class="row">
 				{{#if ready}}{{!Template.subscriptionsReady}}
-					{{#each images}}
-						{{>thumbnail}}
+					{{#each image in images}}
+						{{>thumbnail image=image}}
 					{{/each}}
 				{{else}}
 					{{>thumbnails_loading}}

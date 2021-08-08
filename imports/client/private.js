@@ -1,6 +1,6 @@
 import './private.html';
 import './thumbnails/tagit';
-console.log(__filename);
+// console.log(__filename);
 Template.private.onCreated(function(){
   const instance = this;
   instance.imageid = null;
@@ -97,8 +97,9 @@ Template.private.onRendered(function(){
           Meteor.call('addPrivate', instance.imageid, uid, (err,res) => {
             if (err) {
               console.error(err);
-              Bootstrap3boilerplate.alert('danger', err.message, true);
-             } else {
+              Bootstrap3boilerplate.alert('danger', err.message, false);
+             }
+             else {
                Bootstrap3boilerplate.alert('success', res, true);
              }
           })
@@ -112,8 +113,9 @@ Template.private.onRendered(function(){
         if (uid && instance.imageid) {
           Meteor.call('delPrivate', instance.imageid, uid, (err,res) => {
             if (err) {
-              Bootstrap3boilerplate.alert('danger', err.message, true);
-             } else {
+              Bootstrap3boilerplate.alert('danger', err.message, false);
+             } 
+             else {
                Bootstrap3boilerplate.alert('success', res, true);
              }
           })

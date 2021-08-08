@@ -13,6 +13,7 @@
 						type=type
 						user_banned=user_banned
 						allowed=allowed
+						lastModified=lastModified
 					}}
 					<button  class="btn btn-dark" data-toggle="collapse" data-target="#imageInfo"> Close </button>
 				</div>
@@ -32,7 +33,7 @@
 						</span>
 					{{/if}}
 					<span class="image-badge present-tags image-view">
-					{{#each tag in tags}}
+					{{#each tag in imgTags}}
 						<span class="tag" data-tag="{{tag}}">{{tag}}</span>
 					{{/each}}
 					</span>
@@ -62,14 +63,17 @@
 	<h5 class="card-title">Image Data</h5>
   <ul>
 		{{#if allowed}}
-		<li><a target="_new" href="/download/{{img._id}}">{{img.name}}</a></li>
+			<li><a target="_new" class="download" href="/download/{{img._id}}">{{img.name}}</a></li>
 		{{/if}}
     <li>size {{size}} bytes</li>
-    <li>mime-type {{type}}</li>
+		<li>mime-type {{type}}</li>
+		{{#if lastModified}}
+		<li>date {{localDate lastModified}}</li>
+		{{/if}}
     {{#if isInRole 'admin'}}
     <li>{{{user_banned}}} <a href="/user/{{user}}">{{user_name}}</a></li>
     {{/if}}
-  </ul>
+	</ul>
 	{{>tags title="Enter tags for this image" img=img}}
 	{{#if myImage}}
 		{{>private img=img}} 

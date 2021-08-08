@@ -6,9 +6,6 @@
  <meta name="author" content="Jan Hendrik Mangold" />
  <meta name="generator" content="Meteor 1.9" />
  <link rel="icon" href="/favicon.ico" type="image/x-icon">
- <!-- <link rel="stylesheet" href="/bootstrap.min.css"> -->
- <!-- <link rel="stylesheet" href="/glyphicons.min.css"> -->
- <!-- <script src="/bootstrap.min.js" defer></script> -->
 </head>
 
 <body class="bootstrap"></body>
@@ -40,7 +37,7 @@ reader.onload = function(e) {
 		<ul class="pagination" style="flex-wrap: wrap">
 			{{#if currentUser}}
 				{{#unless isInRole 'banned'}}
-					<li><button style="float:left" class="btn btn-success uploadModal" data-target="#uploadModal" data-toggle="modal">Upload</button></li>
+					<!-- <li><button style="float:left" class="btn btn-success uploadModal" data-target="#uploadModal" data-toggle="modal">Upload</button></li> -->
 				{{/unless}}
 			{{/if}}
 			{{#if showPrevNext}}

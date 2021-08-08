@@ -1,5 +1,8 @@
-import './tags.html';
-import './thumbnails/tagit';
+import './tags.html'
+import './thumbnails/tagit'
+import { InvalidTags } from '/imports/lib/tags'
+// const DEBUG = false
+
 Template.tags.onCreated(function () {
   const instance = this;
   instance.doAutorun = true;
@@ -55,6 +58,7 @@ Template.tags.onRendered(function () {
   //
   // this only fires when rendering the search
   //
+  // console.log(instance.data)
   if (instance.data.search) {
     //
     // if template was called with array of tags, use those
@@ -69,7 +73,7 @@ Template.tags.onRendered(function () {
       var valid = true;
       if(useHook){
         const tagit = instance.$(this).data('uiTagit');
-        valid = ['missing','uncropped','cssclasses'].indexOf(ui.tagLabel) >=0 || instance.validTags.indexOf(ui.tagLabel) >= 0;
+        valid = InvalidTags.indexOf(ui.tagLabel) >=0 || instance.validTags.indexOf(ui.tagLabel) >= 0;
         if (!valid) tagit.tagInput.val('');
       }
       return valid;
@@ -102,7 +106,8 @@ Template.tags.onRendered(function () {
     //
     // only let logged-in users tag
     //
-    if(userId && userId == instance.data.img.user) {
+    // console.log(`${userId} ${instance.data.img.user}`)
+    if( userId && userId == instance.data.img.user ) {
       options.readOnly = false;
     } else {
       options.readOnly = true;
@@ -116,10 +121,10 @@ Template.tags.onRendered(function () {
       tags.push(ui.tagLabel);
       TagSearch.set(tags);
       Session.set('imageStart', 0);
-      FlowRouter.go('/');
+      // FlowRouter.go('/');
     };
     // options['beforeTagAdded'] = function(event, ui) {
-    //   let readOnly = instance.$('#myTags').prop('readOnly');
+    //   let readOnly = instance.$('#tagSearch').prop('readOnly');
     //   if(readOnly) {
     //     Bootstrap3boilerplate.alert('danger', "You don't have permission to add tags to this image", true);
     //     return false;
@@ -129,16 +134,16 @@ Template.tags.onRendered(function () {
     // }
     options.afterTagAdded = function (event, ui) {
       if (TagsImgId) {
-        console.log(`added ${ui.tagLabel} to ${TagsImgId}`,ui);
+        if (DEBUG) console.log(`added ${ui.tagLabel} to ${TagsImgId}`,ui);
         // Images.update(TagsImgId, { $push: { tags: ui.tagLabel } });
         Meteor.call('addTag', TagsImgId, ui.tagValue, (err, res) => {
           if (err) {
             console.error(err);
-            Bootstrap3boilerplate.alert('danger', err.message, true);
+            Bootstrap3boilerplate.alert('danger', err.message, false);
           }
-          // else {
-          //   Bootstrap3boilerplate.alert('success', res, true);
-          // }
+          else {
+            Bootstrap3boilerplate.alert('success', res, true);
+          }
         })
       }
     };
@@ -154,45 +159,54 @@ Template.tags.onRendered(function () {
     };
     options.afterTagRemoved = function (event, ui) {
       if (TagsImgId) {
-        // console.log(`removed ${ui.tagLabel} from ${TagsImgId}`,ui);
+        if (DEBUG) console.log(`removed ${ui.tagLabel} from ${TagsImgId}`,ui);
         // Images.update(TagsImgId, { $pull: { tags: ui.tagLabel } });
         Meteor.call('delTag', TagsImgId, ui.tagValue, (err, res) => {
           if (err) {
             console.error(err);
-            Bootstrap3boilerplate.alert('danger', err.message, true);
+            Bootstrap3boilerplate.alert('danger', err.message, false);
           }
-          // else {
-          //   Bootstrap3boilerplate.alert('success', res, true);
-          // }
+          else {
+            Bootstrap3boilerplate.alert('success', res, true);
+          }
         })
       }
     };
   }
-  instance.$("#myTags").tagit(options);
+  instance.$("#tagSearch").tagit(options);
   //
   // render the search tags
   //
-  if (instance.data.search)
+  if (instance.data.search) {
     instance.autorun(function tagitTagSearch() {
       const tagged = TagSearch.get();
       if (instance.doAutorun && tagged.length>0) {
-        const existing = instance.$("#myTags").tagit('assignedTags');
-        // console.log(`tagitTagSearch`, tagged, existing);
+        const existing = instance.$("#tagSearch").tagit('assignedTags');
+        if(DEBUG) console.log(`tagitTagSearch`, tagged, existing);
         useHook = false;
         tagged.forEach(function (tag) {
           // console.log(`createTag ${tag}`)
           if(existing.indexOf(tag)<0)
-            instance.$("#myTags").tagit("createTag", tag);
+            instance.$("#tagSearch").tagit("createTag", tag);
         });
         useHook = true;
       }
     })
+  } else {
+    // instance.autorun(function tagidTagField(c){
+    //   // const params = FlowRouter.current().params;
+    //   const data = Template.currentData()
+    //   if(!c.firstRun){
+    //     console.log(c,data)
+    //   }
+    // })
+  }
 
   // if (instance.data.tagged) {
   //   useHook = false;
   //   instance.data.tagged.forEach(function (tag) {
   //     // console.log(`createTag ${tag}`)
-  //     instance.$("#myTags").tagit("createTag", tag);
+  //     instance.$("#tagSearch").tagit("createTag", tag);
   //   });
   //   useHook = true;
   // }

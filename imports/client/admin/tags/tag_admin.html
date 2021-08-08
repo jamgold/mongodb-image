@@ -1,31 +1,32 @@
 <template name="tag_admin">
-    {{#if isInRole 'admin'}}
-      {{>tags_admin}}
-    {{else}}
-        Must be admin to see this...
-    {{/if}}
+  {{#if isInRole 'admin'}}
+    {{>tags_admin}}
+  {{else}}
+      Must be admin to see this...
+  {{/if}}
 </template>
 
 <template name='tags_admin'>
-        <div class="row">
-          <div class="col-lg-8" id="tag-admin">
-            <div class="admin-tags">
-            {{#each tag in tags}}
-              <a data-tag="{{tag}}" href="#{{tag}}" class="tag">{{tag}}</a>
-            {{/each}}
-            </div>
-          </div>
-          <div class="col-lg-4">
-            <h4>
-              {{#if selectedTag}}{{selectedTag}}{{else}}Select Tag{{/if}}
-            </h4>
-            <h4>
-              <input class="form-control newtag" placeholder="Enter New Tag" {{disabled}}>
-            </h4>
-            <div class="pull-right">
-              <button type="button" {{disabled}} class="btn btn-success update">Update</button>
-              <button type="button" {{disabled}} class="btn btn-danger reset">Reset</button>
-            </div>
-          </div>
+  <div class="row">
+    <div class="col-lg-8" id="tag-admin">
+      <div class="admin-tags">
+      {{#each tag in tags}}
+        <a data-tag="{{tag}}" href="#{{tag}}" class="tag">{{tag}}</a>
+      {{/each}}
       </div>
+    </div>
+    <div class="col-lg-4">
+      <h4>
+        {{#if selectedTag}}{{selectedTag}}{{else}}Select Tag{{/if}}
+      </h4>
+      <h4>
+        <input class="form-control newtag" placeholder="Enter New Tag" {{disabled}}>
+      </h4>
+      <div class="pull-right">
+        <button type="button" {{disabled}} class="btn btn-success update">Update</button>
+        <button type="button" {{disabled}} class="btn btn-danger reset">Reset</button>
+      </div>
+      Invalid Tags: <span class="text-danger">{{InvalidTags}}</span>
+    </div>
+  </div>
 </template>

@@ -1,6 +1,6 @@
 import 'meteor/jamgold:accounts-admin-ui-bootstrap-3';
 import './user_admin.html';
-console.log(__filename);
+// console.log(__filename);
 // Template.user_admin.onRendered(function () {
 //   const instance = this;
 // });

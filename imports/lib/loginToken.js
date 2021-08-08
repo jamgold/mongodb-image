@@ -1,5 +1,6 @@
-import { Meteor } from "meteor/meteor";
-import { Cookies } from 'meteor/ostrio:cookies';
+import { Meteor } from "meteor/meteor"
+import { Cookies } from 'meteor/ostrio:cookies'
+const DEBUG = false
 
 if(Meteor.isClient) {
   Tracker.autorun(function loginTokenAutorun(){
@@ -11,12 +12,12 @@ if(Meteor.isClient) {
       Meteor.call('getLoginToken',(err,loginToken) => {
         if(err) console.error(err);
         else {
-          console.log(`loginTokenAutorun ${loginToken}`);
+          // console.log(`loginTokenAutorun ${loginToken}`);
           cookies.set('meteor_login_token', loginToken,opts);
         }
       })
     } else {
-      console.log(`loginTokenAutorun logout`);
+      if (DEBUG) console.log(`loginTokenAutorun logout`);
       cookies.set('meteor_login_token', null, opts);
     }
   })

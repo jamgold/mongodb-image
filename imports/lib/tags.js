@@ -1,0 +1,1 @@
+export const InvalidTags = ['missing','uncropped','cssclasses','private']

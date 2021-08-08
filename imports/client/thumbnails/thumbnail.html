@@ -1,5 +1,52 @@
+<template name="flex-thumbnail">
+	<picture>
+		<!-- <source media="(min-width: 650px)" srcset="https://dummyimage.com/1200x600/ccc/000&amp;text=A"> -->
+			{{#with image}}
+			{{#if currentUser}}
+				{{#if private}}
+					<span class="image-badge private-image ">
+						<span class="glyphicon glyphicon-eye-close"></span>
+					</span>
+				{{/if}}
+				{{#unless tags}}
+					<span class="image-badge missing-tags ">
+						<span class="glyphicon glyphicon-tag"></span>
+					</span>
+				{{else}}
+					<span class="image-badge present-tags">
+					{{#each tag in tags}}
+						<a class="tag" data-tag="{{tag}}" href="#">{{tag}}</a>
+					{{/each}}
+					</span>
+				{{/unless}}
+				{{#unless cropped}}
+					<span class="image-badge image-cropped ">
+						<a href="/crop/{{_id}}"><span class="glyphicon glyphicon-resize-small" title="image thumbnail not cropped"></span></a>
+					</span>
+				{{/unless}}
+			{{else}}
+				{{#if tags}}
+					<span class="image-badge present-tags">
+					{{#each tag in tags}}
+					<a class="tag" data-tag="{{tag}}" href="#">{{tag}}</a>
+					{{/each}}
+					</span>
+				{{/if}}
+			{{/if}}
+			<a name="{{_id}}" imageid="{{_id}}" href="/image/{{_id}}">
+				<img class="img-fluid " imageid="{{_id}}" src="{{thumbnail}}"/>
+			</a>
+			{{/with}}
+		</picture>	
+</template>
+
 <template name="thumbnail">
-	<div class="col-lg-2 col-md-2 col-sm-6 col-xs-6 animated off">
+	<div class="d-flex flex-column animated off" xclass="col-lg-2 col-md-3 col-sm-6 col-xs-6 animated off">
+		<div>
+		{{#with image}}
+		<a name="{{_id}}" class="thumbnail" data-image-id="{{_id}}" href="/image/{{_id}}">
+			<img class="img-fluid " imageid="{{_id}}" src="{{thumbnail}}"/>
+		</a>
 		{{#if currentUser}}
 			{{#if private}}
 				<span class="image-badge private-image ">
@@ -17,7 +64,7 @@
 				{{/each}}
 				</span>
 			{{/unless}}
-			{{#unless details}}
+			{{#unless cropped}}
 				<span class="image-badge image-cropped ">
 					<a href="/crop/{{_id}}"><span class="glyphicon glyphicon-resize-small" title="image thumbnail not cropped"></span></a>
 				</span>
@@ -26,14 +73,13 @@
 			{{#if tags}}
 				<span class="image-badge present-tags">
 				{{#each tag in tags}}
-					<span>{{tag}}</span>
+				<a class="tag" data-tag="{{tag}}" href="#">{{tag}}</a>
 				{{/each}}
 				</span>
 			{{/if}}
 		{{/if}}
-		<a class="image" name="{{_id}}" imageid="{{_id}}" href="/image/{{_id}}">
-			<img class="thumbnail " imageid="{{_id}}" src="{{thumbnail}}"/>
-		</a>
+		{{/with}}
+		</div>
 	</div>
 </template>
 

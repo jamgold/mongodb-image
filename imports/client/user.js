@@ -1,7 +1,8 @@
-import { FlowRouter } from 'meteor/ostrio:flow-router-extra';
-import './user.html';
-import '/imports/client/thumbnails/thumbnail';
-console.log(__filename);
+import { FlowRouter } from 'meteor/ostrio:flow-router-extra'
+import './user.html'
+import '/imports/client/thumbnails/thumbnail'
+import { InvalidTags } from '/imports/lib/tags'
+// console.log(__filename);
 
 Template.userImages.onCreated(function () {
   const instance = this;
@@ -69,7 +70,7 @@ Template.userImages.onRendered(function(){
         }
         var pages = [];
         var page = 1;
-        var number = 18;//ImagesPerPage;
+        var number = ImagesPerPage;
         if (counter > number) {
           for (var i = 0; i < counter; i += number) {
             var c = i == 0 ? 'page-item active' : 'page-item';
@@ -147,7 +148,7 @@ Template.userImages.helpers({
         var valid = true;
         if (instance.useHook) {
           const tagit = instance.$(this).data('uiTagit');
-          valid = ['missing', 'uncropped', 'cssclasses'].indexOf(ui.tagLabel) >= 0 || instance.validTags.indexOf(ui.tagLabel) >= 0;
+          valid = InvalidTags.indexOf(ui.tagLabel) >= 0 || instance.validTags.indexOf(ui.tagLabel) >= 0;
           if (!valid) tagit.tagInput.val('');
         }
         return valid;

@@ -1,5 +1,8 @@
+import { check } from 'meteor/check'
 import crypto from 'crypto';
-
+//
+// this is not needed
+//
 const JHMdefaultResumeLoginHandler = (accounts, options) => {
   console.log(`defaultResumeLoginHandler`, options);
 

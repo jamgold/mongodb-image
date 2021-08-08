@@ -1,46 +1,78 @@
 import './index.html';
 import '/imports/client/thumbnails/thumbnail';
+import { cropDrop } from '/imports/lib/crop'
 import { makeHash } from '/imports/lib/hash';
-console.log(__filename);
+// console.log(__filename);
 
 Template.compare.onCreated(function () {
-  const instance = this;
-  instance.ready = new ReactiveVar(false);
-  instance.debug = false;
-  instance.files = [];
-  instance.filesIndex = 0;
-  instance.file = null;
-  instance.md5hash = "";
-  instance.validUsers = [];
-  instance.validTags = [];
+  const instance = this
+  instance.ready = new ReactiveVar(false)
+  instance.debug = true
+  instance.files = []
+  instance.filesIndex = 0
+  instance.file = null
+  instance.md5hash = ""
+  instance.validUsers = []
+  instance.validTags = []
+  //
+  // if we come here from thumbnails we need to stop the subscripion
+  //
   if (ThumbnailsHandle) {
-    ThumbnailsHandle.stop();
+    ThumbnailsHandle.stop()
   }
+  cropDrop.action = 'compare'
+  window.compare = instance
 });
 Template.compare.onRendered(function () {
   const instance = this;
-
   // console.log(`${instance.view.name}.onRendered`);
-  instance.dropzone = document.getElementById('dropzone');
+  instance.next = instance.find('button.next')
+  instance.reset = instance.find('button.reset')
+  instance.loading = instance.find('img.loading')
+  instance.instructions = instance.find('h1.dnd-instructions')
+
+  instance.showLoading = function(show) {
+    if(show) {
+      instance.crop_img.src = "";
+      instance.loading.classList.remove('hidden')
+      instance.instructions.classList.add('hidden')
+    } else {
+      if (instance.crop_img.src == "" || instance.crop_img.src == document.location.href)
+        instance.instructions.classList.remove('hidden')
+      instance.loading.classList.add('hidden')
+    }
+  }
   instance.processNext = function uploadProcessNext() {
     //
     // process next if there are more
     //
     if (instance.filesIndex < instance.files.length) {
-      instance.file = instance.files.item(instance.filesIndex++);
-      instance.reader.readAsDataURL(instance.file);
+      if(instance.subscription) {
+        instance.subscription.stop()
+        instance.ready.set(false)
+      }
+      // if (ThumbnailsHandle) ThumbnailsHandle.stop();
+      instance.file = instance.files.item(instance.filesIndex++)
+      instance.reader.readAsDataURL(instance.file)
     } else {
-      instance.filesIndex = 0;
-      instance.files = [];
-      instance.$('h1').removeClass('hidden');
-      instance.$('img.loading').addClass('hidden');
+      instance.filesIndex = 0
+      instance.files = []
+      instance.showLoading(false)
       // Bootstrap3boilerplate.Modal.hide();
     }
+
+    if(instance.filesIndex < instance.files.length) {
+      instance.next.disabled = false
+      // instance.next.classList.remove('hidden')
+      instance.next.innerHTML = `Next ${instance.filesIndex} of ${instance.files.length}`
+    } else {
+      instance.next.innerHTML = `Next ${instance.filesIndex} of ${instance.files.length}`
+      // instance.next.classList.add('hidden')
+      instance.next.disabled = true
+    }
   }
-
   instance.reader = new FileReader();
-  instance.preview = document.getElementById('images');
-
+  instance.preview = document.getElementById('preview');
   if (!instance.preview) {
     instance.preview = document.createElement('div');
     instance.preview.id = 'preview';
@@ -62,13 +94,9 @@ Template.compare.onRendered(function () {
     }
     instance.preview.appendChild(instance.crop_img);
   }
-
   instance.cropCanvas = document.getElementById('crop_canvas');
   if (!instance.cropCanvas) {
-    instance.cropCanvas = document.createElement('canvas');
-    instance.cropCanvas.id = 'crop_canvas';
-    instance.cropCanvas.width = 100;
-    instance.cropCanvas.height = 100;
+    instance.cropCanvas = createCropCanvas('crop_canvas')
     if (instance.debug) {
       console.log('creating #crop_canvas');
     } else {
@@ -80,7 +108,7 @@ Template.compare.onRendered(function () {
   // define onload handler for image
   //
   instance.crop_img.onload = function cropImgLoaded(e) {
-    console.log(`crop_img.onload ${e.timeStamp}`);
+    if(instance.debug) console.log(`crop_img.onload ${e.timeStamp}`);
     var cropCanvas = instance.cropCanvas;
     var cropDataUrl = this.src;
     var cc = {
@@ -102,76 +130,66 @@ Template.compare.onRendered(function () {
     // resize original to a 100x100 square for the thumbnail
     //
     crop_ctx.drawImage(
-      this, //instance.crop_img,
+      this,
       // original x/y w/h
       cc.x, cc.y,
-      100, 100 * cc.width / cc.height
-      // cc.width, cc.height,
+      cc.width, cc.height,
       // reduce to canvas x/y w/h
-      // 0, 0,
-      // instance.cropCanvas.width, instance.cropCanvas.height
+      0, 0,
+      instance.cropCanvas.width, instance.cropCanvas.height
     );
     var tags = $('#new_image_tags').tagit('assignedTags');
     var private = $('#new_image_users').tagit('assignedTags');
     if (private.length == 0) private = null;
-    console.log(`cropImage cropped into cropCanvas ${instance.file.name}`, tags, private);
-
-    // Images.insert({
-    //   src: cropDataUrl
-    //   , thumbnail: instance.cropCanvas.toDataURL()
-    //   , size: instance.file.size
-    //   , name: instance.file.name
-    //   , type: instance.file.type
-    //   , md5hash: instance.md5hash
-    //   , tags: tags
-    //   , private: private
-    // }, function imageInserted(error, id) {
-    //   if (error) {
-    //     console.error(error);
-    //   } else {
-    //     console.log(`image ${id} inserted`);
-    //     // var ids = AllImageIDs.get();
-    //     // ids.push(id);
-    //     // AllImageIDs.set(ids);
-    //   }
-    //   instance.processNext();
-    // });
+    if(instance.debug) console.log(`cropImage cropped into cropCanvas ${instance.file.name}`, tags, private);
   }
   //
   // define onload handler for reader to read in the file
   //
   instance.reader.onload = (function (cropImg) {
     return async function (e) {
-      if (instance.file.type in AcceptedFileTypes) {
-        instance.md5hash = await makeHash(e.target.result);
+      instance.showLoading(true)
+      if (instance.file.type in cropDrop.acceptedFileTypes) {
+        // console.log(instance.file.lastModified);
+        instance.md5hash = await makeHash(e.target.result)
         if (instance.debug) {
-          console.log(`read file ${instance.file.name} => ${instance.md5hash}`, cropImg);
+          console.log(`read file ${instance.file.name} => ${instance.md5hash}`)
         }
-        cropImg.src = e.target.result;
-        instance.$('button.reset').removeClass('hidden');
+        cropImg.src = e.target.result
+        instance.ready.set(false)
         instance.subscription = instance.subscribe('md5hash', instance.md5hash, function(){
-          console.log(`subscription ready ${Images.find().count()}`)
-          instance.ready.set(true);
+          if(instance.debug) console.log(`subscription ready ${Images.find().count()}`)
+          instance.ready.set(true)
+          instance.showLoading(false)
+          instance.reset.disabled = false // $('button.reset').removeClass('hidden');
+          const img = Images.findOne()
+          if (img && !img.lastModified && instance.file.lastModified) {
+            Images.update(img._id, {$set:{lastModified: instance.file.lastModified}})
+          }
         });
       } else {
-        Bootstrap3boilerplate.alert('danger', `Image ${instance.file.type} not of acceptable mime-type`, true);
+        Bootstrap3boilerplate.alert('danger', `Image ${instance.file.type} not of acceptable mime-type`, false);
         instance.processNext();
       }
     };
   })(instance.crop_img);
 });
 Template.compare.onDestroyed(function () {
-  const instance = this;
-  // console.log(`${instance.view.name}.onDestroyed`);
+  const instance = this
+  // console.log(`${instance.view.name}.onDestroyed`)
+  cropDrop.action = 'insert'
 });
 Template.compare.events({
+  'click button.next'(event, instance) {
+    instance.processNext()
+  },
   'click button.reset'(event, instance){
     if(instance.subscription) {
       instance.subscription.stop();
     }
-    event.currentTarget.classList.add('hidden');
-    instance.dropzone.classList.remove('hidden');
+    event.currentTarget.disabled = true //classList.add('hidden');
     instance.crop_img.src = "";
+    instance.showLoading(false)
     instance.ready.set(false);
   },
   'click button.upload'(event, instance){
@@ -199,15 +217,15 @@ Template.compare.events({
       Meteor.call('getURL', url.value, async function (err, file) {
         if (err) {
           console.error(err);
-          Bootstrap3boilerplate.alert('danger', `${err.details}`, true);
+          Bootstrap3boilerplate.alert('danger', `${err.details}`, false);
         } else {
           const md5hash = await makeHash(file.data);
           instance.file = file;
 
-          Meteor.call('imageExists', md5hash, function imageExits(err, exists) {
+          Meteor.call('imageExists', md5hash, instance.file.lastModified, function imageExits(err, exists) {
             if (exists) {
-              Bootstrap3boilerplate.alert('danger', `Image ${instance.file.name} has been uploaded before`, true);
-              instance.processNext();
+              Bootstrap3boilerplate.alert('danger', `Image ${instance.file.name} has been uploaded before`, false);
+              // instance.processNext();
             } else {
               // set crop_img.src so crop_img.onload fires which creates the thumbnail
               // https://developer.mozilla.org/en-US/docs/Using_files_from_web_applications
@@ -224,14 +242,13 @@ Template.compare.events({
   },
   'change #fileinput': function (e, instance) {
     // console.info(e.target);
-    instance.filesIndex = 0;
-    instance.files = document.getElementById('fileinput').files;
-    // instance.$('h1').addClass('hidden');
-    // instance.$('img.loading').removeClass('hidden');
+    instance.filesIndex = 0
+    instance.files = document.getElementById('fileinput').files
+    instance.showLoading(true)
     instance.processNext();
-    // instance.file = instance.files.item(instance.filesIndex++);
-    // instance.reader.readAsDataURL(instance.file);
-    // instance.$('button.upload').removeClass('hidden');
+    instance.file = instance.files.item(instance.filesIndex++);
+    instance.reader.readAsDataURL(instance.file);
+    instance.$('button.upload').removeClass('hidden');
     // $('div.crop_img').removeClass('hidden');
   },
   'click div.mongodb-image-droppable'(e, instance) {
@@ -259,20 +276,18 @@ Template.compare.events({
     } else if (e.originalEvent.target) {
       instance.files = e.originalEvent.target.files;
     }
-    instance.dropzone.classList.add('hidden');
-    // instance.$('h1.dnd-instructions').addClass('hidden');
-    // instance.$('img.loading').removeClass('hidden');
-    instance.processNext();
+    instance.showLoading(true)
+    instance.processNext()
   }
 });
 Template.compare.helpers({
   images(){
-    return Images.find();
+    return Images.find()
+  },
+  imagesExist(){
+    return Images.find().count() > 0
   },
   ready(){
-    return Template.instance().ready.get();
-  },
-  imageCount(){
-    return Images.find().count();
+    return Template.instance().ready.get()
   },
 });

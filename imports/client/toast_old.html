@@ -1,0 +1,29 @@
+<template name="toastSave">
+	<div aria-live="polite" aria-atomic="true" style="position: relative; min-height: 200px;">
+		<!-- Position it -->
+		<div style="position: absolute; top: 0; right: 0;">
+			{{#if alerts}}
+				{{#each alerts}}
+					<div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+						<div class="toast-header">
+							<strong class="mr-auto">{{type}}</strong>
+							{{#if dismiss}}
+							<button data-alertid="{{alertid}}" type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+								<span aria-hidden="true">&times;</span>
+							</button>
+							<!--
+							<button data-alertid="{{alertid}}"  class="close" xdata-dismiss="alert">
+								<span data-alertid="{{alertid}}" aria-hidden="true">&times;</span>
+								<span data-alertid="{{alertid}}" class="sr-only">Close</span>
+							</button>
+							-->
+							{{/if}}
+						</div>
+						<div class="toast-body">{{{text}}}</div>
+					</div>
+				{{/each}}
+			{{/if}}
+		</div>
+	</div>
+</template>
+

@@ -1,27 +1,24 @@
 import './upload.html';
 import './thumbnails/tagit';
-import { makeHash } from '/imports/lib/hash';
+import { cropDrop } from '/imports/lib/crop'
+import { makeHash } from '/imports/lib/hash'
 // console.log(__filename);
 
-const CROP_DIMENSIONS = {x: 200, y: 200}
-
 Template.upload.onCreated(function () {
-  const template = this;
-  template.debug = false;
-  template.files = [];
-  template.filesIndex = 0;
-  template.file = null;
-  template.md5hash = "";
-  template.validUsers = [];
-  template.validTags = [];
-  template.autorun(function () {
-    template.userId = Meteor.userId();
+  const instance = this
+  // console.log(`${instance.view.name}.onCreated`, instance.data)
+  instance.file = null
+  instance.validUsers = []
+  instance.validTags = []
+  window.upload = instance
+  instance.autorun(function uploadAutorunUserId() {
+    instance.userId = Meteor.userId()
   });
-  template.validUser = function (id) {
+  instance.validUser = function uploadValidUser(id) {
     var user = Meteor.users.findOne(id);
     if (user == undefined) {
-      if (template.validUsers.length > 0) {
-        var x = template.validUsers.filter((u) => { return u.value == id });
+      if (instance.validUsers.length > 0) {
+        var x = instance.validUsers.filter((u) => { return u.value == id });
         if (x.length > 0) user = x[0].value;
       }
     } else {
@@ -29,182 +26,51 @@ Template.upload.onCreated(function () {
     }
     return user;
   }
-
 });
 Template.upload.onRendered(function () {
-  const template = this;
-
-  // console.log(`${template.view.name}.onRendered`);
-
-  template.processNext = function uploadProcessNext() {
-    //
-    // process next if there are more
-    //
-    if (template.filesIndex < template.files.length) {
-      template.file = template.files.item(template.filesIndex++);
-      template.reader.readAsDataURL(template.file);
-    } else {
-      template.filesIndex = 0;
-      template.files = [];
-      Session.set('uploaded', Session.get('uploaded') + 1);
-      Session.set('imageStart', 0);
-      template.$('h1').removeClass('hidden');
-      template.$('img').addClass('hidden');
-      // Bootstrap3boilerplate.Modal.hide();
-    }
-  }
-
-  template.reader = new FileReader();
-  template.preview = document.getElementById('images');
-
-  if (!template.preview) {
-    template.preview = document.createElement('div');
-    template.preview.id = 'preview';
-    if (template.debug) {
-      console.log('creating #preview');
-    } else {
-      template.preview.classList.add('hidden');
-    }
-    document.body.appendChild(template.preview);
-  }
-  template.crop_img = document.getElementById('crop_img');
-  if (!template.crop_img) {
-    template.crop_img = document.createElement('img');
-    template.crop_img.id = 'crop_img';
-    if (template.debug) {
-      console.log('creating #crop_img');
-    } else {
-      template.crop_img.classList.add('hidden');
-    }
-    template.preview.appendChild(template.crop_img);
-  }
-
-  template.cropCanvas = document.getElementById('crop_canvas');
-  if (!template.cropCanvas) {
-    template.cropCanvas = document.createElement('canvas');
-    template.cropCanvas.id = 'crop_canvas';
-    template.cropCanvas.width = CROP_DIMENSIONS.x;
-    template.cropCanvas.height = CROP_DIMENSIONS.y;
-    if (template.debug) {
-      console.log('creating #crop_canvas');
-    } else {
-      template.cropCanvas.classList.add('hidden');
-    }
-    template.preview.appendChild(template.cropCanvas);
-  }
-  //
-  // define onload handler for image
-  //
-  template.crop_img.onload = function cropImgLoaded(e) {
-    if (template.debug) console.log(`crop_img.onload ${e.timeStamp}`);
-    var cropCanvas = template.cropCanvas;
-    var cropDataUrl = this.src;
-    var cc = {
-      x: 0,
-      y: 0,
-      width: this.width,
-      height: this.height,
-    };
-    if (cc.height > cc.width) {
-      cc.height = cc.width;
-    } else {
-      cc.width = this.height;
-    }
-    // console.log('cropping',cc);
-
-    var crop_ctx = cropCanvas.getContext("2d");
-    //
-    // resize original to a 100x100 square for the thumbnail
-    //
-    crop_ctx.drawImage(
-      this, //template.crop_img,
-      // original x/y w/h
-      cc.x, cc.y,
-      // CROP_DIMENSIONS.x, CROP_DIMENSIONS.y * cc.width / cc.height
-      cc.width, cc.height,
-      // reduce to canvas x/y w/h
-      0, 0,
-      template.cropCanvas.width, template.cropCanvas.height
-    );
-    var tags = $('#new_image_tags').tagit('assignedTags');
-    var private = $('#new_image_users').tagit('assignedTags');
-    if (private.length == 0) private = null;
-    if (template.debug) console.log(`cropImage cropped into cropCanvas ${template.file.name}`, tags, private);
-
-    Images.insert({
-      src: cropDataUrl
-      , thumbnail: template.cropCanvas.toDataURL()
-      , size: template.file.size
-      , name: template.file.name
-      , type: template.file.type
-      , md5hash: template.md5hash
-      , tags: tags
-      , private: private
-    }, function imageInserted(error, id) {
-      if (error) {
-        console.error(error);
+  const instance = this;
+  // console.log(`${instance.view.name}.onRendered`, instance.$('#new_image_tags'));
+  instance.autorun(function uploadAutorunProcessing(c){
+    const processing = cropDrop.processing.get()
+    if(c.firsRun !== false && c._recomputing === true) {
+      // console.log(`uploadAutorunProcessing ${processing}`, c)
+      if(processing) {
+        instance.$('h1').addClass('hidden')
+        instance.$('img.loading').removeClass('hidden')
       } else {
-        console.log(`image ${id} inserted`);
-        // var ids = AllImageIDs.get();
-        // ids.push(id);
-        // AllImageIDs.set(ids);
+        instance.$('h1').removeClass('hidden');
+        instance.$('img.loading').addClass('hidden');
       }
-      template.processNext();
-    });
-  }
-  //
-  // define onload handler for reader to read in the file
-  //
-  template.reader.onload = (function (aImg) {
-    return async function (e) {
-      if (template.file.type in AcceptedFileTypes) {
-        template.md5hash = await makeHash(e.target.result);
-        if (template.debug) {
-          console.log(`read file ${template.file.name} => ${template.md5hash}`);
-        }
-        Meteor.call('imageExists', template.md5hash, function imageExits(err, exists) {
-          if (exists) {
-            Bootstrap3boilerplate.alert('danger', `Image ${template.file.name} has been uploaded before`, true);
-            template.processNext();
-          } else {
-            // set crop_img.src so crop_img.onload fires which creates the thumbnail
-            // https://developer.mozilla.org/en-US/docs/Using_files_from_web_applications
-            aImg.src = e.target.result;
-          }
-        });
-      } else {
-        Bootstrap3boilerplate.alert('danger', `Image ${template.file.type} not of acceptable mime-type`, true);
-        template.processNext();
-      }
-    };
-  })(template.crop_img);
+    }
+  })
 });
 Template.upload.onDestroyed(function () {
   const template = this;
-  // console.log(`${template.view.name}.onDestroyed`);
+  if (DEBUG) console.log(`${template.view.name}.onDestroyed`);
 });
 Template.upload.events({
   'click button.upload-url' (event, template) {
     var url = template.find('#image-url');
     if (url) {
+      //
+      // call getURL method to retrieve the URL
+      //
       Meteor.call('getURL', url.value, async function(err, file) {
         if (err) {
           console.error(err);
-          Bootstrap3boilerplate.alert('danger', `${err.details}`, true);
+          Bootstrap3boilerplate.alert('danger', `${err.details}`, false);
         } else {
           const md5hash = await makeHash(file.data);
-          template.file = file;
-
-          Meteor.call('imageExists', md5hash, function imageExits(err, exists) {
+          cropDrop.file = file;
+          Meteor.call('imageExists', md5hash, file.lastModified, function imageExits(err, exists) {
             if (exists) {
-              Bootstrap3boilerplate.alert('danger', `Image ${template.file.name} has been uploaded before`, true);
-              template.processNext();
+              Bootstrap3boilerplate.alert('danger', `Image ${file.name} has been uploaded before`, false)
+              // cropDrop.file = file
+              cropDrop.processNext()
             } else {
-              // set crop_img.src so crop_img.onload fires which creates the thumbnail
-              // https://developer.mozilla.org/en-US/docs/Using_files_from_web_applications
-              template.crop_img.src = file.data;
-              template.md5hash = md5hash;
-              url.value = '';
+              cropDrop.crop_img.src = file.data
+              cropDrop.md5hash = md5hash
+              url.value = ''
             }
           });
         }
@@ -214,16 +80,10 @@ Template.upload.events({
     }
   },
   'change #fileinput': function (e, template) {
-    // console.info(e.target);
-    template.filesIndex = 0;
-    template.files = document.getElementById('fileinput').files;
-    template.$('h1').addClass('hidden');
-    template.$('img').removeClass('hidden');
-    template.processNext();
-    // template.file = template.files.item(template.filesIndex++);
-    // template.reader.readAsDataURL(template.file);
-    // template.$('button.upload').removeClass('hidden');
-    // $('div.crop_img').removeClass('hidden');
+    const files = document.getElementById('fileinput').files
+    cropDrop.filesIndex = 0
+    cropDrop.files = files
+    cropDrop.processNext()
   },
   'click div.mongodb-image-droppable'(e, template) {
     e.preventDefault();
@@ -241,63 +101,72 @@ Template.upload.events({
     e.currentTarget.classList.remove('dragover');
   },
   'drop div.mongodb-image-droppable'(e, template) {
-    e.preventDefault();
-    e.stopPropagation();
+    // e.preventDefault();
+    // e.stopPropagation();
     e.currentTarget.classList.remove('dragover');
-    template.filesIndex = 0;
-    if (e.originalEvent.dataTransfer) {
-      template.files = e.originalEvent.dataTransfer.files;
-    } else if (e.originalEvent.target) {
-      template.files = e.originalEvent.target.files;
-    }
-    template.$('h1').addClass('hidden');
-    template.$('img').removeClass('hidden');
-    template.processNext();
-  }
+  },
+  'change #new_image_tags'(e, template) {
+    cropDrop.tags = $(`#${e.currentTarget.id}`).tagit('assignedTags')
+  },
+  // 'change #new_image_users'(e, template) {
+  //   console.log(e.currentTarget)
+  //   cropDrop.private = $(`#${e.currentTarget.id}`).tagit('assignedTags')
+  // },
 });
 Template.upload.helpers({
+  currentTags(){
+    return TagSearch.get()
+  },
   options(type){
     const instance = Template.instance();
     const options = {
       private: {
-          // defaultClasses: 'bootstrap label label-primary tagit-choice ui-corner-all',
-          defaultClasses: 'bootstrap badge badge-primary tagit-choice ui-corner-all',
-          allowDuplicates: false,
-          allowSpaces: false,
-          caseSensitive: false,
-          existingEffect: 'shake',
-          readOnly: false,
-          tagLimit: null,
-          singleField: true,
-          // fieldName: 'tag',
-          appendTo: '#uploadModal',
-          // availableTags: instance.data.users.map((u) => {return u.email}),
-          autocomplete: {
-            delay: 0,
-            minLength: 2,
-            autoFocus: true,
-            source(request, callback) {
-              Meteor.call('users', request.term, (err, users) => {
-                if (err) console.error(err);
-                else {
-                  instance.validUsers = users;
-                  callback(users);
-                }
-              });
-              // console.log(request.term, instance.users)
-              // var options = instance.users
-              //   .filter((u) => { return u.email.match(request.term) })
-              //   .map((u) => { return { label: u.email, value: u.id } })
-              // callback(options);
-            },
+        // defaultClasses: 'bootstrap label label-primary tagit-choice ui-corner-all',
+        defaultClasses: 'bootstrap badge badge-primary tagit-choice ui-corner-all',
+        allowDuplicates: false,
+        allowSpaces: false,
+        caseSensitive: false,
+        existingEffect: 'shake',
+        readOnly: false,
+        tagLimit: null,
+        singleField: true,
+        // fieldName: 'tag',
+        appendTo: '#uploadModal',
+        // availableTags: instance.data.users.map((u) => {return u.email}),
+        autocomplete: {
+          delay: 0,
+          minLength: 2,
+          autoFocus: true,
+          source(request, callback) {
+            Meteor.call('users', request.term, (err, users) => {
+              if (err) console.error(err)
+              else {
+                instance.validUsers = users
+                callback(users)
+              }
+            });
+            // console.log(request.term, instance.users)
+            // var options = instance.users
+            //   .filter((u) => { return u.email.match(request.term) })
+            //   .map((u) => { return { label: u.email, value: u.id } })
+            // callback(options);
           },
-          beforeTagAdded(event, ui) {
-            const tagit = instance.$(this).data('uiTagit');
-            const valid = instance.validUser(ui.tagValue);
-            // console.log(`beforeTagAdded ${ui.tagValue}=${valid}`);
-            if (!valid) tagit.tagInput.val('');
-            return valid;
-          },
+        },
+        beforeTagAdded(event, ui) {
+          const tagit = instance.$(this).data('uiTagit');
+          const valid = instance.validUser(ui.tagValue) !== undefined;
+          // console.log(`beforeTagAdded ${ui.tagValue}=${valid}`);
+          if (!valid) tagit.tagInput.val('');
+          return valid;
+        },
+        afterTagRemoved(event, ui) {
+          // console.log(`removed ${ui.tagLabel}=${ui.tagValue}`,ui)
+          cropDrop.private = cropDrop.private.filter((p) => p != ui.tagValue)
+        },
+        afterTagAdded(event, ui) {
+          // console.log(`added ${ui.tagLabel}=${ui.tagValue}`, ui)
+          cropDrop.private.push(ui.tagValue)
+        }
       },
       tags: {
         allowDuplicates: false,
@@ -329,6 +198,9 @@ Template.upload.helpers({
               callback(options);
             });
           }
+        },
+        afterTagAdded(event, ui) {
+          if (DEBUG) console.log(`uploadTag added ${ui.tagLabel}=${ui.tagValue}`, ui)
         },
       },
     }

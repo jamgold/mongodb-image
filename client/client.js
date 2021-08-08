@@ -1,9 +1,9 @@
-import '/imports/lib/routes';
-import '/imports/lib/loginToken';
-import '/imports/client/tags';
-import 'hammerjs';
-import { FlowRouter } from 'meteor/ostrio:flow-router-extra';
-
+import '/imports/lib/routes'
+import '/imports/lib/loginToken'
+import '/imports/client/tags'
+import isMobile from 'ismobilejs'
+import 'hammerjs'
+import { FlowRouter } from 'meteor/ostrio:flow-router-extra'
 //
 // http://www.apimeme.com/
 //
@@ -17,67 +17,31 @@ Meteor.flush = function() {
 //   console.info('options', options);
 // };
 
-AcceptedFileTypes = {"image/png":true,"image/jpeg":true,"image/jpg":true,"image/gif":true};
-
 Session.setDefault('uploaded', 0);
 Session.setDefault('imageStart', 0);
 Session.setDefault('imageCount', 0);
 Session.setDefault('navbarUrl', '/');
 Session.setDefault('TagSearch',[]);
+Session.setDefault('isMobile', false);
 Session.setDefault('src', new Date());
 
 // AllImageIDs = new ReactiveVar([]);
 ThumbnailsHandle = null;
 Contributors = new ReactiveVar([]);
 TagSearch = {
-  get(){return Session.get('TagSearch')},
-  set(v){Session.set('TagSearch', v)},
+  get(){
+    const tags = Session.get('TagSearch')
+    return Array.isArray(tags) ? tags : []
+  },
+  set(v){
+    if (DEBUG) console.trace(`TagSearch.set ${v}`)
+    Session.set('TagSearch', v)
+  },
 };//new ReactiveVar([]);
 ImageType = new ReactiveVar('cover');
 TagsImgId = null;
 ImageStart = 0;
 
-Bootstrap3boilerplate = {
-  __alert: new ReactiveVar([]),
-  _alertTypes:[
-    "primary",
-    "secondary",
-    "success",
-    "danger",
-    "warning",
-    "info",
-    "light",
-    "dark",
-  ],
-  alert: function (type, text, dismiss) {
-    var alertid = Random.id();
-    type = _.indexOf(Bootstrap3boilerplate._alertTypes, type) >= 0 ? type : 'info';
-    dismiss = dismiss === undefined ? false : dismiss === true;
-    var alerts = Bootstrap3boilerplate.__alert.get();
-    if (alerts === undefined) alerts = [];
-    alerts.push({
-      type: type,
-      text: text,
-      dismiss: dismiss,
-      alertid: alertid
-    });
-    Bootstrap3boilerplate.__alert.set(alerts);
-    return alertid;
-  },
-  removeAlert: function (alertid) {
-    var newalerts = [];
-    if (_.indexOf(['all', 'clear'], alertid) < 0) {
-      var alerts = Bootstrap3boilerplate.__alert.get();
-      if (alerts === undefined) alerts = [];
-      _.each(alerts, function (alert) {
-        if (alert.alertid != alertid)
-          newalerts.push(alert);
-      });
-    }
-    Bootstrap3boilerplate.__alert.set(newalerts);
-  },
-
-}
 Template.registerHelper('cssclasses',function(){
   // console.log(`cssclasses ${this.cssclasses}`);
   return this.cssclasses ? this.cssclasses : '';
@@ -176,23 +140,30 @@ Template.jsonWell.helpers({
 
 Template.pagination.helpers({
   showPrevNext(){
-    const pages = Template.currentData().pages;
-    return pages && pages.length>1;
+    // const pages = Template.currentData().pages
+    return false // pages && pages.length>1
   },
 });
+Template.pagination.events({
+  'click .page-link'(e,t) {
+    window.scrollTo(0, top - 60);
+  }
+})
 
 Tracker.autorun(function imageCountAutorun() {
-  var uploaded = Session.get('uploaded');
-  var tags = TagSearch.get();
-  // console.info(`imageCountAutorun ${tags}`);
+  const uploaded = Session.get('uploaded')
+  const tags = TagSearch.get()
+  const userId = Meteor.userId()
+  if (DEBUG) console.info(`imageCountAutorun for ${userId} [${tags}]`);
   Meteor.call('imageCount', tags, function(err,count){
     if(!err) {
-      Session.set('imageCount', count);
+      Session.set('imageCount', count)
     }
-  });
-});
+  })
+})
 
 Meteor.startup(function(){
+  Session.set('isMobile', isMobile(navigator.userAgent).any)
   // console.log('Meteor.startup');
   Meteor.call('contributors', function(err,res){
     if(err) {

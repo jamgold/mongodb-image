@@ -1,7 +1,7 @@
 import imageHash from 'node-image-hash';
 import { Promise } from 'meteor/promise';
 global.imageHash = imageHash;
-const md5 = require('md5');
+// const md5 = require('md5');
 const HASH_BITS = 256;
 
 export const callWithPromise = (method) => {
@@ -18,7 +18,7 @@ export const makeHash = function makeHash(data) {
     return new Promise((resolve, reject) => {
       imageHash.syncHash(buffer, HASH_BITS)
         .then((hash, error) => {
-          if (error) reject(error);
+          // if (error) reject(error);
           resolve(hash.hash);
         });
     });

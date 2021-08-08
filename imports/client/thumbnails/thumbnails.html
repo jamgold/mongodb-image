@@ -1,44 +1,44 @@
 <template name="thumbnails">
-	{{>upload}}
-
-	<div class="card">
+	<div class="collapse" id="tagSearchCollaps">
 		<div class="card-body">
 		{{#if isInRole 'json'}}
 			{{>jsonWell imageid=imageid}}
 		{{else}}
-			<h5 class="card-title">Thumbnails</h5>
+			<h5 class="card-title">Thumbnails:
+				{{#if currentUser}}
+					{{#unless isInRole 'banned'}}
+						drag &amp; drop images on this window
+					{{else}}
+						You have been banned from uploading
+					{{/unless}}
+				{{else}}You need to be logged in to upload pictures{{/if}}</h5>
 		{{/if}}
-		{{>tags title="Enter tags to search" tagged=tagged search=true}}
+		{{>tags title="Enter tags to search" tagged=tagged search=true id="tagSearch"}}
+		{{>pagination pages=pages}}
 		</div>
 	</div>
-
-	{{#if currentUser}}
-		{{#if isInRole 'banned'}}
-			<div class="well">
-			<h1>You have been banned to upload images</h1>
-			<p>Apparently you have been abusing this demo to upload offensive images, so you have been banned.</p>
-			</div>
-		{{/if}}
+	{{#if showPrevNext}}
+	<a class="btn carousel prev thumbnails" ><i class="glyphicon glyphicon-chevron-left"></i></a>
+	<a class="btn carousel next thumbnails" ><i class="glyphicon glyphicon-chevron-right"></i></a>
 	{{/if}}
-<div>
-	<div class="row thumbnails" id="images">
+	<div class="d-flex flex-row flex-wrap justify-content-center" id="images">
 		{{#if ready}}
-			{{>thumbnails_data images=images}}
+			{{>thumbnails_data images=images tagged=tagged}}
 		{{else}}
 			{{>thumbnails_loading noLoadingClass=true}}
 		{{/if}}
 	</div>
 
-	{{>pagination pages=pages}}
-</div>
+	{{!pagination pages=pages}}
 	{{!instructions}}
+
 	{{#if isInRole 'moment'}}
 		{{> momentTemplate}}
 	{{/if}}
 </template>
 
 <template name="thumbnails_data">
-	{{#each images}}
-		{{>thumbnail}}
+	{{#each image in images}}
+		{{>thumbnail image=image tagged=tagged}}
 	{{/each}}
 </template>

@@ -1,25 +1,41 @@
 // https://github.com/VeliovGroup/flow-router
-import { FlowRouter, RouterHelpers } from 'meteor/ostrio:flow-router-extra';
-import { FlowRouterMeta, FlowRouterTitle } from 'meteor/ostrio:flow-router-meta';
-import { LAYOUT } from '/imports/client/bootstrap';
-global.FlowRouter = FlowRouter;
-
-ThumbnailsConfig = {
-  MinHeight: null,
-  TopMargin: 254,
-  Height: 160,
-  PerRow: 6
-}
-global.ThumbnailsConfig = ThumbnailsConfig;
+import { FlowRouter, RouterHelpers } from 'meteor/ostrio:flow-router-extra'
+import { FlowRouterMeta, FlowRouterTitle } from 'meteor/ostrio:flow-router-meta'
+import { LAYOUT } from '/imports/client/bootstrap'
+global.FlowRouter = FlowRouter
 
 FlowRouter.route('/', {
   name: 'thumbnails',
   title: 'Images',
   async action(params) {
     import '/imports/client/thumbnails';
+    if (DEBUG) console.log(`route thumbnails`)
     this.render(LAYOUT, "thumbnails", {content: "thumbnails"});
   },
-});
+})
+
+// FlowRouter.route('/random', {
+//   name: 'random',
+//   waitOn(params) {
+//     const id = 'SHmNhZtScDaaEihLJ' // params.id
+//     params.id = id
+//     console.log(`random waitOn ${id}`)
+//     return Meteor.subscribe('image', id)
+//   },
+//   data(params) {
+//     const id = 'SHmNhZtScDaaEihLJ' // params.id
+//     return Images.findOne(id)
+//   },
+//   async action(params, query, image = {}) {
+//     import '/imports/client/image'
+//     // if (DEBUG) 
+//     console.log(`random action ${image._id} ${image.tags}`, image)
+//     this.render(LAYOUT, "image", {image: image})
+//   },
+//   title(params, query, image) {
+//     return image.name;
+//   },
+// })
 
 FlowRouter.route('/image/:id', {
   name: 'image',
@@ -32,7 +48,7 @@ FlowRouter.route('/image/:id', {
   },
   async action(params, query, image = {}) {
     import '/imports/client/image';
-    // console.log(`image action ${image._id} ${image.tags}`);
+    if (DEBUG) console.log(`image action ${image._id} ${image.tags}`);
     this.render(LAYOUT, "image", {image: image});
   },
   title(params, query, image) {
@@ -83,7 +99,7 @@ FlowRouter.route('/crop/:id', {
     import '/imports/client/crop';
     this.render(LAYOUT, "crop");
   }
-});
+})
 
 FlowRouter.route('/user/:user', {
   name: 'user_images',
@@ -91,7 +107,7 @@ FlowRouter.route('/user/:user', {
     import '/imports/client/user';
     this.render(LAYOUT, "userImages", {content:"userImages"});
   }
-});
+})
 
 const adminRoutes = FlowRouter.group({
   prefix: '/admin',
@@ -103,7 +119,7 @@ const adminRoutes = FlowRouter.group({
       redirect('/403');
     }
   }]
-});
+})
 
 adminRoutes.route('/users', {
   name: 'admin_users',
@@ -112,7 +128,7 @@ adminRoutes.route('/users', {
     import '/imports/client/admin/users';
     this.render(LAYOUT, "user_admin", {content: "user_admin"});
   },
-});
+})
 
 adminRoutes.route('/tags', {
   name: 'admin_tags',
@@ -120,7 +136,7 @@ adminRoutes.route('/tags', {
     import '/imports/client/admin/tags';
     this.render(LAYOUT, "tag_admin", { content: "tag_admin" });
   },
-});
+})
 
 FlowRouter.route('/compare', {
   name: 'compare',
@@ -165,6 +181,6 @@ FlowRouter.route('*', {
       url: params[0],
     });
   }
-});
+})
 
-global.flowRouterMeta = new FlowRouterMeta(FlowRouter);
+global.flowRouterMeta = new FlowRouterMeta(FlowRouter)
